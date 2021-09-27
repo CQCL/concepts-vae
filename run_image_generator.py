@@ -36,7 +36,7 @@ def main(_):
     config = importlib.import_module(FLAGS.config)
     config = config.get_config(FLAGS.mode)
     generate_images.gen_images(config, FLAGS.render_size, FLAGS.task_hsv_colors,
-                        FLAGS.anti_aliasing, os.path.join('images/red_blue_discrete', FLAGS.file_name), 
+                        FLAGS.anti_aliasing, os.path.join('images', FLAGS.file_name), 
                         FLAGS.file_name, FLAGS.num_images)
 
 

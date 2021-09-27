@@ -43,19 +43,19 @@ CLUSTERS_DISTS = {
     # 'blue': distribs.Gaussian('c0', 0.6, 0.01667),
     # 'green': distribs.Gaussian('c0', 0.32, 0.01667),
     # 'yellow': distribs.Gaussian('c0', 0.15, 0.01667),
-    # 'red': distribs.Continuous('c0', 0.9, 1.),
-    # 'blue': distribs.Continuous('c0', 0.55, 0.65),
-    # 'green': distribs.Continuous('c0', 0.27, 0.37),
-    # 'yellow': distribs.Continuous('c0', 0.1, 0.2),
-    'red': distribs.Discrete('c0', [0.95]),
-    'blue': distribs.Discrete('c0', [0.6]),
-    'green': distribs.Discrete('c0', [0.32]),
-    'yellow': distribs.Discrete('c0', [0.15]),
+    'red': distribs.Continuous('c0', 0.9, 1.),
+    'blue': distribs.Continuous('c0', 0.55, 0.65),
+    'green': distribs.Continuous('c0', 0.27, 0.37),
+    'yellow': distribs.Continuous('c0', 0.1, 0.2),
+    # 'red': distribs.Discrete('c0', [0.95]),
+    # 'blue': distribs.Discrete('c0', [0.6]),
+    # 'green': distribs.Discrete('c0', [0.32]),
+    # 'yellow': distribs.Discrete('c0', [0.15]),
 }
 
 # Define train/test generalization splits
 MODES = {
-    'train': ('blue',),
+    'train': ('red',),
     'test': (),
 }
 
@@ -77,16 +77,16 @@ def get_config(mode='train'):
                                                    NUM_SPRITES_PER_CLUSTER))
 
   other_factors = distribs.Product([
-      distribs.Continuous('x', 0.1, 0.9),
-      distribs.Continuous('y', 0.1, 0.9),
-    #   distribs.Discrete('x', [0.5]),
-    #   distribs.Discrete('y', [0.5]),
+      # distribs.Continuous('x', 0.1, 0.9),
+      # distribs.Continuous('y', 0.1, 0.9),
+      distribs.Discrete('x', [0.5]),
+      distribs.Discrete('y', [0.5]),
       distribs.Discrete('shape', ['circle']),
-      distribs.Discrete('scale', [0.15]),
-    #   distribs.Continuous('c1', 0.3, 1.),
-    #   distribs.Continuous('c2', 0.9, 1.),
-      distribs.Discrete('c1', [0.6]),
-      distribs.Discrete('c2', [0.9]),
+      distribs.Discrete('scale', [0.5]),
+      distribs.Continuous('c1', 0.3, 1.),
+      distribs.Continuous('c2', 0.9, 1.),
+      # distribs.Discrete('c1', [0.6]),
+      # distribs.Discrete('c2', [0.9]),
   ])
 
   # Generate the sprites to be used in this task, by combining Hue with the
