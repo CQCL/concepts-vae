@@ -14,7 +14,7 @@ from vae.data_generator import ImageGenerator
 from vae.utils import save_vae_clusters, save_reconstructed_images
 
 
-IMAGE_DIR='images/red_blue_discrete/'
+IMAGE_DIR='images/red_circle/'
 BATCH_SIZE=16
 
 
@@ -40,10 +40,10 @@ vae.compile(optimizer=keras.optimizers.Adam())
 
 tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )
 
-vae.fit(data_it, epochs=500, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
+vae.fit(data_it, epochs=50, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
 
 vae.save('vae_weights')
 
 
-save_reconstructed_images(vae, data_it, num_images=100, folder_name='images/reconstructed2/', file_name='reconstructed')
-save_vae_clusters(vae, data_it, 'red', 'images/clusters2.png')
+save_reconstructed_images(vae, data_it, num_images=100, folder_name='images/reconstructed/', file_name='reconstructed')
+save_vae_clusters(vae, data_it, 'red', 'images/clusters.png')

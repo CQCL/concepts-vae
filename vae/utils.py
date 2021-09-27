@@ -16,11 +16,11 @@ def save_vae_clusters(vae, data, labels, file_name='clusters.png'):
 
 def save_reconstructed_images(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
     image_num = 1
-    for i in range(int(np.ceil(num_images / len(data)))):
+    for i in range(len(data)):
         _, _, z = vae.encoder.predict(data[i])
         img = vae.decoder.predict(z)
         img *= 255
-        for j in range(len(data)):
+        for j in range(len(img)):
             if image_num > num_images:
                 return
             im = PIL.Image.fromarray(np.uint8(img[j]))
