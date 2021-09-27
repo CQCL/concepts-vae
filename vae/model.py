@@ -80,10 +80,14 @@ class VAE(keras.Model):
         with tf.GradientTape() as tape:
             z_mean, z_log_var, z = self.encoder(data)
             reconstruction = self.decoder(z)
-            reconstruction_loss = 10 * self.reconstruction_loss_function(data, reconstruction)
+            reconstruction_loss = tf.reduce_mean(
+                tf.reduce_sum(
+                    self.reconstruction_loss_function(data, reconstruction), axis=(1,2)
+                )
+            )
             kl_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
             kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
-            total_loss = reconstruction_loss + kl_loss
+            total_loss = 10 * reconstruction_loss + kl_loss
         grads = tape.gradient(total_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         self.total_loss_tracker.update_state(total_loss)
