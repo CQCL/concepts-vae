@@ -35,10 +35,6 @@ CLUSTERS_DISTS = {
     'blue': distribs.Continuous('c0', 0.55, 0.65),
     'green': distribs.Continuous('c0', 0.27, 0.37),
     'yellow': distribs.Continuous('c0', 0.1, 0.2),
-    # 'red': distribs.Discrete('c0', [0.95]),
-    # 'blue': distribs.Discrete('c0', [0.6]),
-    # 'green': distribs.Discrete('c0', [0.32]),
-    # 'yellow': distribs.Discrete('c0', [0.15]),
 }
 
 # Define train/test generalization splits
@@ -49,15 +45,6 @@ MODES = {
 
 
 def get_sprite(mode='train'):
-  """Generate environment config.
-
-  Args:
-    mode: 'train' or 'test'.
-
-  Returns:
-    config: Dictionary defining task/environment configuration. Can be fed as
-      kwargs to environment.Environment.
-  """
 
   # Select clusters to use, and their c0 factor distribution.
   c0_clusters = [CLUSTERS_DISTS[cluster] for cluster in MODES[mode]]
