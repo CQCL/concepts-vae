@@ -1,21 +1,15 @@
 from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
-from spriteworld import generate_images
-
 from PIL import Image
-
 from spriteworld import renderers
 from spriteworld.concepts import get_sprite
-
 
 config = {
     'task_hsv_colors': True,
     'render_size': 256,
     'anti_aliasing': 10,
-    'num_images': 100,
+    'num_images': 10,
     'file_name': 'red_circle'
 }
 
@@ -35,7 +29,7 @@ def gen_images(render_size, task_hsv_colors, anti_aliasing, save_dir, file_name,
 
 
 def main():
-    generate_images.gen_images(config['render_size'], config['task_hsv_colors'],
+    gen_images(config['render_size'], config['task_hsv_colors'],
                         config['anti_aliasing'], os.path.join('images', config['file_name']), 
                         config['file_name'], config['num_images'])
 
