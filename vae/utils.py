@@ -4,15 +4,16 @@ import numpy as np
 import PIL
 
 
-def save_vae_clusters(vae, data, labels, file_name='clusters.png'):
+def save_vae_clusters(vae, data, labels, file_name='clusters'):
     # display a 2D plot of the digit classes in the latent space
-    z_mean, _, _ = vae.encoder.predict(data)
-    plt.figure(figsize=(12, 10))
-    plt.scatter(z_mean[:, 0], z_mean[:, 1], c=labels)
-    plt.colorbar()
-    plt.xlabel("z[0]")
-    plt.ylabel("z[1]")
-    plt.savefig(file_name)
+    z_mean, z_var, _ = vae.encoder.predict(data)
+    for i in range(z_mean.shape[1]):
+        plt.figure(figsize=(12, 10))
+        plt.scatter(z_mean[:, i], z_var[:, i], c=labels)
+        plt.colorbar()
+        plt.xlabel('z' + str(i) + '-mean')
+        plt.ylabel('z' + str(i) + '-var')
+        plt.savefig(file_name+ str(i) + '.png')
 
 def save_reconstructed_images(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
     image_num = 1

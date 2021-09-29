@@ -22,7 +22,6 @@ from spriteworld import generate_images
 FLAGS = flags.FLAGS
 flags.DEFINE_string('config', 'spriteworld.configs.concepts',
                     'Module name of task config to use.')
-flags.DEFINE_string('mode', 'train', 'Task mode, "train" or "test"]')
 flags.DEFINE_boolean('task_hsv_colors', True,
                      'Whether the task config uses HSV as color factors.')
 flags.DEFINE_integer('render_size', 256,
@@ -33,9 +32,7 @@ flags.DEFINE_string('file_name', 'red_circle', 'Name of generated images')
 
 
 def main(_):
-    config = importlib.import_module(FLAGS.config)
-    config = config.get_config(FLAGS.mode)
-    generate_images.gen_images(config, FLAGS.render_size, FLAGS.task_hsv_colors,
+    generate_images.gen_images(FLAGS.render_size, FLAGS.task_hsv_colors,
                         FLAGS.anti_aliasing, os.path.join('images', FLAGS.file_name), 
                         FLAGS.file_name, FLAGS.num_images)
 

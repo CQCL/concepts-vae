@@ -20,8 +20,6 @@ from __future__ import print_function
 import os
 from spriteworld import factor_distributions as distribs
 from spriteworld import sprite_generators
-from spriteworld import tasks
-from spriteworld.configs import common
 
 # Task Parameters
 NUM_SPRITES_PER_CLUSTER = 1
@@ -50,7 +48,7 @@ MODES = {
 }
 
 
-def get_config(mode='train'):
+def get_sprite(mode='train'):
   """Generate environment config.
 
   Args:
@@ -63,8 +61,6 @@ def get_config(mode='train'):
 
   # Select clusters to use, and their c0 factor distribution.
   c0_clusters = [CLUSTERS_DISTS[cluster] for cluster in MODES[mode]]
-  print('Clustering task: {}, #sprites: {}'.format(MODES[mode],
-                                                   NUM_SPRITES_PER_CLUSTER))
 
   other_factors = distribs.Product([
       # distribs.Continuous('x', 0.1, 0.9),
@@ -72,7 +68,7 @@ def get_config(mode='train'):
       distribs.Discrete('x', [0.5]),
       distribs.Discrete('y', [0.5]),
       distribs.Discrete('shape', ['circle']),
-      distribs.Discrete('scale', [0.5]),
+      distribs.Discrete('scale', [0.3]),
       distribs.Continuous('c1', 0.3, 1.),
       distribs.Continuous('c2', 0.9, 1.),
       # distribs.Discrete('c1', [0.6]),
@@ -94,19 +90,6 @@ def get_config(mode='train'):
   sprite_gen = sprite_generators.chain_generators(*sprite_gen_per_cluster)
   # Randomize sprite ordering to eliminate any task information from occlusions
   sprite_gen = sprite_generators.shuffle(sprite_gen)
+  sprite = sprite_gen()
 
-  # Clustering task will define rewards
-  task = tasks.NoReward()
-
-  config = {
-      'task': task,
-      'action_space': common.action_space(),
-      'renderers': common.renderers(),
-      'init_sprites': sprite_gen,
-      'max_episode_length': MAX_EPISODE_LENGTH,
-      'metadata': {
-          'name': os.path.basename(__file__),
-          'mode': mode
-      }
-  }
-  return config
+  return sprite
