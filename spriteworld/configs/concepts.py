@@ -12,16 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-# python2 python3
-"""Clustering task used in COBRA.
-
-Cluster sprites by color.
-
-We use 4 types of sprites, based on their hue.
-We then compute a Davies-Bouldin clustering metric to assess clustering quality
-(and generate a reward). The Clustering task uses a threshold to terminate an
-episode when the clustering metric is good enough.
-"""
 
 from __future__ import absolute_import
 from __future__ import division
