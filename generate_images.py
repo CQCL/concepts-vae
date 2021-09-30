@@ -10,7 +10,7 @@ config = {
     'render_size': 256,
     'anti_aliasing': 10,
     'num_images': 10,
-    'file_name': 'red_circle'
+    'folder_name': 'red_circle'
 }
 
 
@@ -25,8 +25,9 @@ def gen_images(colour, size, shape, position):
         sprite = get_sprite(colour, size, shape, position)
         image = renderer.render(sprite)
         im = Image.fromarray(image)
-        im.save(os.path.join('images', config['file_name'], config['file_name'] + '_' + str(i) + '.png'))
+        im.save(os.path.join('images', config['folder_name'], 
+            str(i) + '_' + colour + '_' + size + '_' + shape + '_' + position + '.png'))
 
 
 if __name__ == '__main__':
-    gen_images('blue', 'small', 'triangle', 'top')
+    gen_images('blue', 'medium', 'triangle', 'top')

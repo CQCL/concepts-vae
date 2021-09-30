@@ -70,7 +70,9 @@ SHAPE = {
 }
 
 POSITION = {
-    'top': distribs.Product([distribs.Continuous('y', 0.7, 1), distribs.Discrete('x', [0.5])]),
+    'top': distribs.Product([distribs.Continuous('y', 0.66, 1), distribs.Discrete('x', [0.5])]),
+    'centre': distribs.Product([distribs.Continuous('y', 0.33, 0.66), distribs.Discrete('x', [0.5])]),
+    'bottom': distribs.Product([distribs.Continuous('y', 0., 0.33), distribs.Discrete('x', [0.5])]),
 }
 
 
