@@ -14,25 +14,19 @@ config = {
 }
 
 
-def gen_images(render_size, task_hsv_colors, anti_aliasing, save_dir, file_name, num_images=10):
+def gen_images(colour, size, shape, position):
     renderer = renderers.PILRenderer(
-                image_size=(render_size, render_size),
+                image_size=(config['render_size'], config['render_size']),
                 color_to_rgb=renderers.color_maps.hsv_to_rgb
-                if task_hsv_colors else None,
-                anti_aliasing=anti_aliasing)
+                if config['task_hsv_colors'] else None,
+                anti_aliasing=config['anti_aliasing'])
 
-    for i in range(num_images):
-      sprite = get_sprite()
-      image = renderer.render(sprite)
-      im = Image.fromarray(image)
-      im.save(os.path.join(save_dir, file_name + '_' + str(i) + '.png'))
-
-
-def main():
-    gen_images(config['render_size'], config['task_hsv_colors'],
-                        config['anti_aliasing'], os.path.join('images', config['file_name']), 
-                        config['file_name'], config['num_images'])
+    for i in range(config['num_images']):
+        sprite = get_sprite(colour, size, shape, position)
+        image = renderer.render(sprite)
+        im = Image.fromarray(image)
+        im.save(os.path.join('images', config['file_name'], config['file_name'] + '_' + str(i) + '.png'))
 
 
 if __name__ == '__main__':
-    main()
+    gen_images('blue', 'small', 'triangle', 'top')
