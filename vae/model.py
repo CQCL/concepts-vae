@@ -77,12 +77,13 @@ class VAE(keras.Model):
         return reconstruction
 
     def train_step(self, data):
+        x,y = data
         with tf.GradientTape() as tape:
-            z_mean, z_log_var, z = self.encoder(data)
+            z_mean, z_log_var, z = self.encoder(x)
             reconstruction = self.decoder(z)
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(
-                    self.reconstruction_loss_function(data, reconstruction), axis=(1,2)
+                    self.reconstruction_loss_function(x, reconstruction), axis=(1,2)
                 )
             )
             kl_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))

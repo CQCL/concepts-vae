@@ -20,8 +20,8 @@ BATCH_SIZE=16
 
 data_it = ImageGenerator(IMAGE_DIR, BATCH_SIZE)
 
-img_width  = data_it[0].shape[1]
-img_height = data_it[0].shape[2]
+img_width = data_it[0][0].shape[1]
+img_height = data_it[0][0].shape[2]
 num_channels = 3  #3 for rgb
 input_shape = (img_height, img_width, num_channels)
 

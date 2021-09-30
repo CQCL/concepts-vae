@@ -3,6 +3,7 @@ import numpy as np
 import PIL
 import random
 import os
+from vae import encoding_dictionary as enc
 
 class ImageGenerator(keras.utils.Sequence) :
   
@@ -22,6 +23,17 @@ class ImageGenerator(keras.utils.Sequence) :
     
     def __getitem__(self, idx) :
         batch_x = self.image_files[idx * self.batch_size : (idx+1) * self.batch_size]
-        return np.array([
-                np.asarray(PIL.Image.open(file_path), dtype=np.float64) / 255.0
-                    for file_path in batch_x])
+        batch_images =  np.array([np.asarray(
+            PIL.Image.open(file_path), dtype=np.float64) / 255.0 for file_path in batch_x])
+        batch_labels = []
+        for file_path in batch_x:
+            file_name = os.path.splitext(os.path.split(file_path)[1])[0]
+            keywords = file_name.split('_')
+            batch_labels.append([
+                enc.COLOURS[keywords[1]],
+                enc.SIZE[keywords[2]],
+                enc.SHAPE[keywords[3]],
+                enc.POSITION[keywords[4]],
+            ])
+        batch_labels = np.array(batch_labels, dtype=float)
+        return batch_images, batch_labels
