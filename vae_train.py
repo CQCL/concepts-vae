@@ -29,7 +29,7 @@ input_shape = (img_height, img_width, num_channels)
 params = {
     'num_strides': 2,
     'kernel_size': 4,
-    'latent_dim': 4,
+    'latent_dim': 6,
     'pool_size':(2,2),
     'num_channels': num_channels,
     'input_shape': input_shape,
@@ -46,4 +46,4 @@ vae.save('vae_weights')
 
 
 save_reconstructed_images(vae, data_it, num_images=100, folder_name='images/reconstructed/', file_name='reconstructed')
-save_vae_clusters(vae, data_it, 'red', 'images/clusters/cluster')
+save_vae_clusters(vae, data_it, 'images/clusters/cluster')

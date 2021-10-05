@@ -4,15 +4,34 @@ import numpy as np
 import PIL
 
 
-def save_vae_clusters(vae, data, labels, file_name='clusters'):
+def get_cmap(n, name='rainbow'):
+    '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct 
+    RGB color; the keyword argument name must be a standard mpl colormap name.'''
+    return plt.cm.get_cmap(name, n)
+
+def save_vae_clusters(vae, data, file_name='clusters'):
     # display a 2D plot of the digit classes in the latent space
-    z_mean, _, _ = vae.encoder.predict(data[0][0])
-    for i in range(z_mean.shape[1]):
+    for i in range(4):
         fig = plt.figure(figsize=(12, 10))
         ax1 = fig.add_subplot(111)
+        z_mean_list=[]
+        z_var_list=[]
+        label_list=[]
         for j in range(len(data)):
             z_mean, z_var, _ = vae.encoder.predict(data[j][0])
-            ax1.scatter(z_mean[:, i], z_var[:, i], c=labels)
+            z_mean_list.append(z_mean[:, i])
+            z_var_list.append(z_var[:, i])
+            label_list.append(data[j][1][:,i])
+        z_mean_list = np.array(z_mean_list).flatten()
+        z_var_list = np.array(z_var_list).flatten()
+        label_list = np.array(label_list).flatten()
+        unique_labels = np.unique(label_list)
+        color=get_cmap(len(unique_labels))
+        
+        for j, label in enumerate(unique_labels):
+            idx = np.where(label_list==label)[0]
+            ax1.scatter(z_mean_list[idx], z_var_list[idx], color=color(j), label=label)
+        ax1.legend()
         plt.xlabel('z' + str(i) + '-mean')
         plt.ylabel('z' + str(i) + '-var')
         plt.savefig(file_name+ str(i) + '.png')
