@@ -30,10 +30,10 @@ class ImageGenerator(keras.utils.Sequence) :
             file_name = os.path.splitext(os.path.split(file_path)[1])[0]
             keywords = file_name.split('_')
             batch_labels.append([
-                enc.COLOURS[keywords[1]],
-                enc.SIZE[keywords[2]],
-                enc.SHAPE[keywords[3]],
-                enc.POSITION[keywords[4]],
+                enc.enc_dict['colour'][keywords[1]],
+                enc.enc_dict['size'][keywords[2]],
+                enc.enc_dict['shape'][keywords[3]],
+                enc.enc_dict['position'][keywords[4]],
             ])
         batch_labels = np.array(batch_labels, dtype=float)
         return batch_images, batch_labels

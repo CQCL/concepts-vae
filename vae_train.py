@@ -46,4 +46,4 @@ vae.save('vae_weights')
 
 
 save_reconstructed_images(vae, data_it, num_images=100, folder_name='images/reconstructed/', file_name='reconstructed')
-save_vae_clusters(vae, data_it, 'images/clusters/cluster')
+save_vae_clusters(vae, data_it, params['latent_dim'], 'images/clusters/cluster')
