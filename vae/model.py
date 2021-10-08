@@ -21,13 +21,15 @@ class ConceptGaussians(layers.Layer):
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains])
+        mean_initializer = tf.keras.initializers.RandomUniform(minval=-10., maxval=10.)
+        log_var_initializer = tf.keras.initializers.RandomUniform(minval=-7., maxval=0.5)
         self.mean = self.add_weight(name='kernel',
                                       shape=(input_shape[1], max_concepts),
-                                      initializer='ones',  # TODO: Choose your initializer
+                                      initializer=mean_initializer,
                                       trainable=True)
         self.log_var = self.add_weight(name='kernel',
                                       shape=(input_shape[1], max_concepts),
-                                      initializer='ones',  # TODO: Choose your initializer
+                                      initializer=log_var_initializer,
                                       trainable=True)
         super(ConceptGaussians, self).build(input_shape)
 
@@ -116,14 +118,15 @@ class VAE(keras.Model):
             )
             concept_mean, concept_log_var = self.concept_gaussians(labels)
             kl_loss = 0
-            for i in range(len(z_mean)):
-                if i < len(concept_mean):
+            for i in range(z_mean.shape[1]):
+                if i < concept_mean.shape[1]:
                     kl_loss = kl_loss + self.kl_loss_general(z_mean[:,i], z_log_var[:,i], concept_mean[:,i], concept_log_var[:,i])
                 else:
                     kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
-            kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
+            kl_loss = tf.reduce_mean(kl_loss)
             total_loss = reconstruction_loss + kl_loss
         grads = tape.gradient(total_loss, self.trainable_weights)
+        
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         self.total_loss_tracker.update_state(total_loss)
         self.reconstruction_loss_tracker.update_state(reconstruction_loss)
