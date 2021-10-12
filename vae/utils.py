@@ -32,7 +32,7 @@ def save_vae_clusters(vae, data, latent_dim, file_name='clusters'):
 
             for j, label in enumerate(unique_labels):
                 idx = np.where(label_list==label)[0]
-                axs[k].scatter(z_mean_list[idx], z_var_list[idx], color=color(j), label=enc.dec_dict[plot_label][label], s=1.25)
+                axs[k].scatter(z_mean_list[idx], z_var_list[idx], color=color(j), label=enc.dec_dict[plot_label][label], s=1.25, alpha=0.2)
             axs[k].legend()
             axs[k].title.set_text(plot_label)
             axs[k].set_xlabel('z' + str(i) + '-mean')
