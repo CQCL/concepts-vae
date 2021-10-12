@@ -5,13 +5,14 @@ from PIL import Image
 import random
 from spriteworld import renderers
 from spriteworld.concepts import get_sprite
+from itertools import product
 
 config = {
     'task_hsv_colors': True,
-    'render_size': 256,
+    'render_size': 64,
     'anti_aliasing': 10,
-    'num_images': 10,
-    'folder_name': 'red_circle'
+    'num_images': 18000,
+    'folder_name': 'various'
 }
 
 
@@ -32,9 +33,9 @@ def gen_images(parameters):
 
 
 if __name__ == '__main__':
-    gen_images([
-        ('blue', 'medium', 'circle', 'centre'),
-        ('blue', 'small', 'circle', 'centre'),
-        ('red', 'medium', 'circle', 'centre'),
-        ('red', 'small', 'circle', 'centre'),
-    ])
+    gen_images(list(product(
+        ['red', 'green', 'blue'],
+        ['small', 'medium', 'large'],
+        ['circle', 'square'],
+        ['top', 'bottom']
+    )))
