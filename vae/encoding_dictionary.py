@@ -2,8 +2,8 @@ concept_domains = ['colour', 'size', 'shape', 'position']
 
 enc_dict = {
     'colour' : {
-        'red': 0,
-        'blue': 1,
+        'blue': 0,
+        'red': 1,
         'green': 2,
         'yellow': 3,
     },
@@ -38,8 +38,8 @@ enc_dict = {
 
 dec_dict = {
     'colour' : {
-        0 : 'red',
-        1 : 'blue',
+        0 : 'blue',
+        1 : 'red',
         2 : 'green',
         3 : 'yellow',
     },
