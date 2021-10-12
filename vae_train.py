@@ -36,6 +36,7 @@ params = {
 }
 
 vae = VAE(params)
+# vae.compile(optimizer=keras.optimizers.Adam(), run_eagerly=True)
 vae.compile(optimizer=keras.optimizers.Adam())
 
 tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )

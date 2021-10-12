@@ -12,35 +12,41 @@ class Sampling(layers.Layer):
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
         dim = tf.shape(z_mean)[1]
-        epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
+        epsilon = keras.backend.random_normal(shape=(batch, dim))
         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
 
 
 class ConceptGaussians(layers.Layer):
-
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains])
-        mean_initializer = tf.keras.initializers.RandomUniform(minval=-10., maxval=10.)
-        log_var_initializer = tf.keras.initializers.RandomUniform(minval=-7., maxval=0.5)
+        mean_initializer = keras.initializers.RandomUniform(minval=-10., maxval=10.)
+        log_var_initializer = keras.initializers.RandomUniform(minval=-7., maxval=0.5)
         self.mean = self.add_weight(name='kernel',
-                                      shape=(input_shape[1], max_concepts),
+                                      shape=(len(enc.concept_domains), max_concepts),
                                       initializer=mean_initializer,
                                       trainable=True)
         self.log_var = self.add_weight(name='kernel',
-                                      shape=(input_shape[1], max_concepts),
+                                      shape=(len(enc.concept_domains), max_concepts),
                                       initializer=log_var_initializer,
                                       trainable=True)
         super(ConceptGaussians, self).build(input_shape)
 
     def call(self, labels, **kwargs):
-        required_means = np.zeros(labels.shape, dtype=np.float32)
-        required_log_vars = np.zeros(labels.shape, dtype=np.float32)
-        for i in range(labels.shape[0]):
-            for j in range(labels.shape[1]):
-                required_means[i][j] = self.mean[j][int(labels[i][j])]
-                required_log_vars[i][j] = self.log_var[j][int(labels[i][j])]
-        return tf.convert_to_tensor(required_means), tf.convert_to_tensor(required_log_vars)
+        def get_means(label):
+            required_means = tf.linalg.diag_part(
+                                tf.experimental.numpy.take(self.mean, tf.cast(label, tf.int32), axis=1))
+            return required_means
+
+        def get_vars(label):
+            required_log_vars = tf.linalg.diag_part(
+                                    tf.experimental.numpy.take(self.log_var, tf.cast(label, tf.int32), axis=1))
+            return required_log_vars
+
+        means = tf.map_fn(get_means, labels)
+        log_vars = tf.map_fn(get_vars, labels)
+        
+        return means, log_vars
 
 
 class VAE(keras.Model):
@@ -119,7 +125,7 @@ class VAE(keras.Model):
             concept_mean, concept_log_var = self.concept_gaussians(labels)
             kl_loss = 0
             for i in range(z_mean.shape[1]):
-                if i < concept_mean.shape[1]:
+                if i < len(enc.concept_domains):
                     kl_loss = kl_loss + self.kl_loss_general(z_mean[:,i], z_log_var[:,i], concept_mean[:,i], concept_log_var[:,i])
                 else:
                     kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
@@ -127,7 +133,10 @@ class VAE(keras.Model):
             total_loss = reconstruction_loss + kl_loss
         grads = tape.gradient(total_loss, self.trainable_weights)
         
-        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+        self.optimizer.apply_gradients((grad, weights) 
+            for (grad, weights) in zip(grads, self.trainable_weights)
+            if grad is not None)
+
         self.total_loss_tracker.update_state(total_loss)
         self.reconstruction_loss_tracker.update_state(reconstruction_loss)
         self.kl_loss_tracker.update_state(kl_loss)
