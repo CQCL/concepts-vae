@@ -14,16 +14,16 @@ from vae.data_generator import ImageGenerator
 from vae.utils import save_vae_clusters, save_reconstructed_images
 
 
-IMAGE_DIR='images/red_circle/'
+IMAGE_DIR='images/various/'
 BATCH_SIZE=16
 
 
 data_it = ImageGenerator(IMAGE_DIR, BATCH_SIZE)
 
-img_width = data_it[0][0].shape[1]
-img_height = data_it[0][0].shape[2]
+img_width = data_it[0][0][0].shape[1]
+img_height = data_it[0][0][0].shape[2]
 num_channels = 3  #3 for rgb
-input_shape = (img_height, img_width, num_channels)
+image_input_shape = (img_height, img_width, num_channels)
 
 
 params = {
@@ -32,7 +32,7 @@ params = {
     'latent_dim': 6,
     'pool_size':(2,2),
     'num_channels': num_channels,
-    'input_shape': input_shape,
+    'input_shape': [image_input_shape, (4,)],
 }
 
 vae = VAE(params)
