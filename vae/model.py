@@ -67,8 +67,9 @@ class VAE(keras.Model):
         self.reconstruction_loss_function = tf.keras.losses.MeanSquaredError(reduction='none')
 
     def encoder_model(self):
-        encoder_inputs = keras.Input(shape=self.params['input_shape'])
-        x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(encoder_inputs)
+        encoder_image_inputs = keras.Input(shape=self.params['input_shape'][0])
+        encoder_label_inputs = keras.Input(shape=self.params['input_shape'][1])
+        x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(encoder_image_inputs)
         # x = layers.MaxPooling2D(pool_size=self.params['pool_size'])(x)
         x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
         x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
@@ -76,11 +77,12 @@ class VAE(keras.Model):
         # x = layers.MaxPooling2D(pool_size=self.params['pool_size'])(x)
         conv_shape = tf.keras.backend.int_shape(x) #Shape of conv to be provided to decoder
         x = layers.Flatten()(x)
+        x = layers.Concatenate()([encoder_label_inputs, x])
         x = layers.Dense(256, activation="relu")(x)
         z_mean = layers.Dense(self.params['latent_dim'], name="z_mean")(x)
         z_log_var = layers.Dense(self.params['latent_dim'], name="z_log_var")(x)
         z = Sampling()([z_mean, z_log_var])
-        encoder = keras.Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
+        encoder = keras.Model([encoder_image_inputs, encoder_label_inputs], [z_mean, z_log_var, z], name="encoder")
         return encoder, conv_shape
 
     def decoder_model(self, conv_shape):
@@ -113,13 +115,13 @@ class VAE(keras.Model):
         return reconstruction
 
     def train_step(self, data):
-        images, labels = data
+        images_and_labels, labels = data
         with tf.GradientTape() as tape:
-            z_mean, z_log_var, z = self.encoder(images)
+            z_mean, z_log_var, z = self.encoder(images_and_labels)
             reconstruction = self.decoder(z)
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(
-                    self.reconstruction_loss_function(images, reconstruction), axis=(1,2)
+                    self.reconstruction_loss_function(images_and_labels[0], reconstruction), axis=(1,2)
                 )
             )
             concept_mean, concept_log_var = self.concept_gaussians(labels)
