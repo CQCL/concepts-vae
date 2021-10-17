@@ -1,8 +1,12 @@
+from datetime import datetime
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
+import random
+import tensorflow as tf
 import vae.encoding_dictionary as enc
+from vae.model import Sampling
 
 
 def get_cmap(n, name='rainbow'):
@@ -40,25 +44,72 @@ def save_vae_clusters(vae, data, latent_dim, file_name='clusters'):
             # plt.savefig(file_name + '_latent_dim' + str(i) + '_label_dim' + str(k) + '.png')
         plt.savefig(file_name + '_latent_dim' + str(i) + '.png')
 
-def save_reconstructed_images(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
-    image_num = 1
-    for i in range(len(data)):
-        _, _, z = vae.encoder.predict(data[i][0])
-        img = vae.decoder.predict(z)
-        img *= 255
-        for j in range(len(img)):
-            if image_num > num_images:
-                return
-            im = PIL.Image.fromarray(np.uint8(img[j]))
-            im.save(os.path.join(folder_name, file_name + str(image_num) + '.png'))
-            image_num = image_num + 1
+def save_images(folder_name, file_name, img):
+    img *= 255
+    for j in range(len(img)):
+        im = PIL.Image.fromarray(np.uint8(img[j]))
+        im.save(os.path.join(folder_name, datetime.utcnow().strftime("%B_%d_%H%M%S%f_") + file_name + '.png'))
 
-    # for i in range(10):
-    #     input = tf.convert_to_tensor(np.array([[[0,0]], [[1,1]]], dtype=np.float))
-    #     z = Sampling()(input)
-    #     print(z)
-    #     img = vae.decoder.predict(z)
+# def save_reconstructed_images(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
+#     image_num = 1
+#     for i in range(num_images):
+#         _, _, z = vae.encoder.predict(data[i][0])
+#         img = vae.decoder.predict(z)
+#         img *= 255
+#         for j in range(len(img)):
+#             if image_num > num_images:
+#                 return
+#             im = PIL.Image.fromarray(np.uint8(img[j]))
+#             im.save(os.path.join(folder_name, file_name + str(image_num) + '.png'))
+#             image_num = image_num + 1
 
-    #     img *= 255
-    #     im = PIL.Image.fromarray(np.uint8(img[0]))
-    #     im.save('reconstructed' + str(i) + '.png')
+
+
+def generate_images_from_gaussians(vae, means, log_vars):
+    ''' 
+        vae = VAE
+        means = array of means of Gaussians (of the dimension of the latent space)
+        log_vars = array of log_vars of Gaussians (of the dimension of the latent space)
+
+        returns: image directly from the decoder
+    '''
+    input = tf.convert_to_tensor(np.array([means,log_vars], dtype=np.float))
+    z = Sampling()(input)
+    img = vae.decoder.predict(z)
+    return img
+
+def generate_images_from_concept(vae, concept, num_images = 1, folder_name='images/concept_images/'):
+    ''' 
+        vae = VAE
+        concept = list of strings
+        num_images: how many images we want to generate
+        returns: nothing
+        saves image
+    '''
+    means = []
+    log_vars = []
+    for i, domain in enumerate(enc.concept_domains):
+        concept_number = enc.enc_dict[domain][concept[i]]
+        means.append(vae.concept_gaussians.mean[i][concept_number])
+        log_vars.append(vae.concept_gaussians.log_var[i][concept_number])
+    
+    means = np.array(means)
+    log_vars = np.array(log_vars)
+
+    extra_dimensions = vae.params['latent_dim'] - len(concept)
+
+    means = np.concatenate((means, np.zeros(extra_dimensions)))
+    log_vars = np.concatenate((log_vars, np.ones(extra_dimensions)))
+
+    means = np.tile(means,(num_images,1))
+    log_vars = np.tile(log_vars,(num_images,1))
+
+    images = generate_images_from_gaussians(vae, means, log_vars)
+ 
+    save_images(folder_name, '_'.join(concept), images)
+
+
+def save_reconstructed_images(vae, parameters, num_images=10, folder_name='images/reconstructed/'):
+    for img in range(num_images):
+        colour, size, shape, position = random.choice(parameters)
+        generate_images_from_concept(vae, [colour, size, shape, position], 1, folder_name)
