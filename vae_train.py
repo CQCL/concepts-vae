@@ -2,6 +2,7 @@ import os
 # os.environ["CUDA_VISIBLE_DEVICES"]="-1"  
 
 import datetime
+from itertools import product
 import numpy as np
 import tensorflow as tf
 config = tf.compat.v1.ConfigProto()
@@ -11,7 +12,7 @@ from tensorflow import keras
 
 from vae.model import VAE
 from vae.data_generator import ImageGenerator
-from vae.utils import save_vae_clusters, save_reconstructed_images
+from vae.utils import save_vae_clusters, save_reconstructed_images, generate_images_from_concept
 
 
 IMAGE_DIR='images/various/'
@@ -41,10 +42,14 @@ vae.compile(optimizer=keras.optimizers.Adam())
 
 tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )
 
-vae.fit(data_it, epochs=50, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
+vae.fit(data_it, epochs=200, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
 
 vae.save('vae_weights')
 
 
-save_reconstructed_images(vae, data_it, num_images=100, folder_name='images/reconstructed/', file_name='reconstructed')
+# save_reconstructed_images(vae, data_it, num_images=100, folder_name='images/reconstructed/', file_name='reconstructed')
 save_vae_clusters(vae, data_it, params['latent_dim'], 'images/clusters/cluster')
+
+# concept1 = ['red','large','square','bottom']
+
+# generate_images_from_concept(vae, concept1, 20, 'images/concept_images/')
