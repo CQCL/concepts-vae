@@ -50,19 +50,6 @@ def save_images(folder_name, file_name, img):
         im = PIL.Image.fromarray(np.uint8(img[j]))
         im.save(os.path.join(folder_name, datetime.utcnow().strftime("%B_%d_%H%M%S%f_") + file_name + '.png'))
 
-# def save_reconstructed_images(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
-#     image_num = 1
-#     for i in range(num_images):
-#         _, _, z = vae.encoder.predict(data[i][0])
-#         img = vae.decoder.predict(z)
-#         img *= 255
-#         for j in range(len(img)):
-#             if image_num > num_images:
-#                 return
-#             im = PIL.Image.fromarray(np.uint8(img[j]))
-#             im.save(os.path.join(folder_name, file_name + str(image_num) + '.png'))
-#             image_num = image_num + 1
-
 
 
 def generate_images_from_gaussians(vae, means, log_vars):
@@ -113,3 +100,16 @@ def save_reconstructed_images(vae, parameters, num_images=10, folder_name='image
     for img in range(num_images):
         colour, size, shape, position = random.choice(parameters)
         generate_images_from_concept(vae, [colour, size, shape, position], 1, folder_name)
+
+def save_reconstructed_images_with_data(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
+    image_num = 1
+    for i in range(num_images):
+        _, _, z = vae.encoder.predict(data[i][0])
+        img = vae.decoder.predict(z)
+        img *= 255
+        for j in range(len(img)):
+            if image_num > num_images:
+                return
+            im = PIL.Image.fromarray(np.uint8(img[j]))
+            im.save(os.path.join(folder_name, file_name + str(image_num) + '.png'))
+            image_num = image_num + 1
