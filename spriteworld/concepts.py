@@ -31,7 +31,7 @@ def get_sprite(colour, size, shape, position):
         constants.SIZE[size],
         constants.SHAPE[shape],
         constants.POSITION[position],
-        distribs.Continuous('c1', 0.3, 1.), #saturation
+        distribs.Continuous('c1', 0.5, 1.), #saturation
         distribs.Continuous('c2', 0.9, 1.), #brightness
     ])
 

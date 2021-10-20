@@ -12,7 +12,7 @@ config = {
     'render_size': 64,
     'anti_aliasing': 10,
     'num_images': 3000,
-    'folder_name': 'various'
+    'folder_name': 'basic'
 }
 
 
@@ -30,10 +30,14 @@ def gen_images(parameters):
         im = Image.fromarray(image)
         im.save(os.path.join('images', config['folder_name'], 
             str(i) + '_' + colour + '_' + size + '_' + shape + '_' + position + '.png'))
+        # im.save(os.path.join('images', config['folder_name'], 
+        #     str(i) + '_' + colour + '_' + shape + '_' + str(sprite[0].c0) + '_' + str(sprite[0].c1) + '_' + str(sprite[0].c2) + '.png'))
 
 
 if __name__ == '__main__':
-    gen_images(list(product(
+
+    gen_images(list
+        (product(
         ['red', 'green', 'blue'],
         ['small', 'medium', 'large'],
         ['circle', 'square', 'triangle'],

@@ -43,15 +43,21 @@ SHAPES = {
 
 COLOURS = {
     'red': distribs.Mixture([distribs.Continuous('c0', 0.95, 1.), distribs.Continuous('c0',0.,0.05)]),
-    'blue': distribs.Continuous('c0', 0.53, 0.70),
+    'blue': distribs.Continuous('c0', 0.55, 0.65),
     'green': distribs.Continuous('c0', 0.27, 0.37),
-    'yellow': distribs.Continuous('c0', 0.1, 0.2)
+    'yellow': distribs.Continuous('c0', 0.1, 0.2),
 }
 
+# DARKNESS = {
+#     'dark': distribs.Continuous('c2', 0.25, 0.4),
+#     'bright': distribs.Continuous('c2', 0.6, 1.),
+# }
+
 SIZE = {
-    'small':  distribs.Continuous('scale', 0.1, 0.2),
-    'medium':  distribs.Continuous('scale', 0.2, 0.3),
-    'large':  distribs.Continuous('scale', 0.3, 0.4),
+    'small':  distribs.Continuous('scale', 0.1, 0.17),
+    'medium':  distribs.Continuous('scale', 0.17, 0.23),
+    # 'medium':  distribs.Discrete('scale', [0.25]),
+    'large':  distribs.Continuous('scale', 0.23, 0.3),
 }
 
 SHAPE = {
@@ -70,9 +76,10 @@ SHAPE = {
 }
 
 POSITION = {
-    'top': distribs.Product([distribs.Continuous('y', 0.66, 0.8), distribs.Discrete('x', [0.5])]),
-    'centre': distribs.Product([distribs.Continuous('y', 0.33, 0.66), distribs.Discrete('x', [0.5])]),
-    'bottom': distribs.Product([distribs.Continuous('y', 0.2, 0.33), distribs.Discrete('x', [0.5])]),
+    'top': distribs.Product([distribs.Continuous('y', 0.56, 0.74), distribs.Discrete('x', [0.5])]),
+    'centre': distribs.Product([distribs.Continuous('y', 0.38, 0.56), distribs.Discrete('x', [0.5])]),
+    # 'centre': distribs.Product([distribs.Discrete('y', [0.5]), distribs.Discrete('x', [0.5])]),
+    'bottom': distribs.Product([distribs.Continuous('y', 0.2, 0.38), distribs.Discrete('x', [0.5])]),
 }
 
 
