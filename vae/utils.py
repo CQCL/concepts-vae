@@ -14,6 +14,7 @@ def get_cmap(n, name='rainbow'):
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n)
 
+
 def save_vae_clusters(vae, data, latent_dim, file_name='clusters'):
     # display a 2D plot of the digit classes in the latent space
     for i in range(latent_dim):
@@ -44,12 +45,12 @@ def save_vae_clusters(vae, data, latent_dim, file_name='clusters'):
             # plt.savefig(file_name + '_latent_dim' + str(i) + '_label_dim' + str(k) + '.png')
         plt.savefig(file_name + '_latent_dim' + str(i) + '.png')
 
+
 def save_images(folder_name, file_name, img):
     img *= 255
     for j in range(len(img)):
         im = PIL.Image.fromarray(np.uint8(img[j]))
         im.save(os.path.join(folder_name, datetime.utcnow().strftime("%B_%d_%H%M%S%f_") + file_name + '.png'))
-
 
 
 def generate_images_from_gaussians(vae, means, log_vars):
@@ -64,6 +65,7 @@ def generate_images_from_gaussians(vae, means, log_vars):
     z = Sampling()(input)
     img = vae.decoder.predict(z)
     return img
+
 
 def generate_images_from_concept(vae, concept, num_images = 1, folder_name='images/concept_images/'):
     ''' 
@@ -100,6 +102,7 @@ def save_reconstructed_images(vae, parameters, num_images=10, folder_name='image
     for img in range(num_images):
         colour, size, shape, position = random.choice(parameters)
         generate_images_from_concept(vae, [colour, size, shape, position], 1, folder_name)
+
 
 def save_reconstructed_images_with_data(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
     image_num = 1
