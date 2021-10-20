@@ -77,7 +77,8 @@ class VAE(keras.Model):
         # x = layers.MaxPooling2D(pool_size=self.params['pool_size'])(x)
         conv_shape = tf.keras.backend.int_shape(x) #Shape of conv to be provided to decoder
         x = layers.Flatten()(x)
-        x = layers.Concatenate()([encoder_label_inputs, x])
+        if self.params['use_labels_in_encoder']:
+            x = layers.Concatenate()([encoder_label_inputs, x])
         x = layers.Dense(256, activation="relu")(x)
         z_mean = layers.Dense(self.params['latent_dim'], name="z_mean")(x)
         z_log_var = layers.Dense(self.params['latent_dim'], name="z_log_var")(x)
@@ -115,13 +116,14 @@ class VAE(keras.Model):
         return reconstruction
 
     def train_step(self, data):
-        images_and_labels, labels = data
+        images = data[0][0]
+        labels = data[0][1]
         with tf.GradientTape() as tape:
-            z_mean, z_log_var, z = self.encoder(images_and_labels)
+            z_mean, z_log_var, z = self.encoder(data[0])
             reconstruction = self.decoder(z)
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(
-                    self.reconstruction_loss_function(images_and_labels[0], reconstruction), axis=(1,2)
+                    self.reconstruction_loss_function(images, reconstruction), axis=(1,2)
                 )
             )
             concept_mean, concept_log_var = self.concept_gaussians(labels)
