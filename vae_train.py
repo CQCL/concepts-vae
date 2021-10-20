@@ -34,6 +34,7 @@ params = {
     'pool_size':(2,2),
     'num_channels': num_channels,
     'input_shape': [image_input_shape, (4,)],
+    'use_labels_in_encoder': False,
 }
 
 vae = VAE(params)
