@@ -17,6 +17,7 @@ from vae.utils import save_vae_clusters, save_reconstructed_images, generate_ima
 
 IMAGE_DIR='images/various/'
 BATCH_SIZE=16
+NUM_EPOCHS=200
 
 
 data_it = ImageGenerator(IMAGE_DIR, BATCH_SIZE)
@@ -43,7 +44,7 @@ vae.compile(optimizer=keras.optimizers.Adam())
 
 tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )
 
-vae.fit(data_it, epochs=200, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
+vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
 
 vae.save('vae_weights')
 
