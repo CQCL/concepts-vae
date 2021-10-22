@@ -8,6 +8,7 @@ import vae.encoding_dictionary as enc
 class Sampling(layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
 
+    @tf.function
     def call(self, inputs):
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
@@ -32,6 +33,7 @@ class ConceptGaussians(layers.Layer):
                                       trainable=True)
         super(ConceptGaussians, self).build(input_shape)
 
+    @tf.function
     def call(self, labels, **kwargs):
         def get_means(label):
             required_means = tf.linalg.diag_part(
@@ -110,11 +112,13 @@ class VAE(keras.Model):
             self.kl_loss_tracker,
         ]
 
+    @tf.function
     def call(self, inputs):
         _, _, z = self.encoder(inputs)
         reconstruction = self.decoder(z)
         return reconstruction
 
+    @tf.function
     def train_step(self, data):
         images = data[0][0]
         labels = data[0][1]
@@ -151,8 +155,10 @@ class VAE(keras.Model):
         }
 
 
+    @tf.function
     def kl_loss_normal(self, z_mean, z_log_var):
         return -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
 
+    @tf.function
     def kl_loss_general(self, mean_0, log_var_0, mean_1, log_var_1):
         return -0.5 * (1 + log_var_0 - log_var_1 - tf.square(mean_1-mean_0)/tf.exp(log_var_1) - tf.exp(log_var_0)/tf.exp(log_var_1))
