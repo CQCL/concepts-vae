@@ -2,8 +2,6 @@ import os
 # os.environ["CUDA_VISIBLE_DEVICES"]="-1"  
 
 import datetime
-from itertools import product
-import numpy as np
 import tensorflow as tf
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -12,7 +10,6 @@ from tensorflow import keras
 
 from vae.model import VAE
 from vae.data_generator import ImageGenerator
-from vae.utils import save_vae_clusters, save_reconstructed_images, generate_images_from_concept
 
 
 IMAGE_DIR='images/various/'
