@@ -133,3 +133,4 @@ dmypy.json
 images/*
 logs/
 vae_weights/
+saved_models/*

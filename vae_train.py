@@ -1,7 +1,7 @@
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"]="-1"  
 
-import datetime
+from datetime import datetime
 import tensorflow as tf
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -43,4 +43,5 @@ tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write
 
 vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
 
-vae.save('saved_models/vae_weights')
+save_location = os.path.join('saved_models', 'vae_weights_' + datetime.utcnow().strftime("%B_%d_%H:%M"))
+vae.save(save_location)
