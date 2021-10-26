@@ -35,7 +35,7 @@ params = {
     'pool_size':(2,2),
     'num_channels': num_channels,
     'input_shape': [image_input_shape, (4,)],
-    'use_labels_in_encoder': False,
+    'use_labels_in_encoder': True,
 }
 
 vae = VAE(params)
@@ -46,12 +46,4 @@ tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write
 
 vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
 
-vae.save('vae_weights')
-
-
-# save_reconstructed_images(vae, data_it, num_images=100, folder_name='images/reconstructed/', file_name='reconstructed')
-save_vae_clusters(vae, data_it, params['latent_dim'], 'images/clusters/cluster')
-
-# concept1 = ['red','large','square','bottom']
-
-# generate_images_from_concept(vae, concept1, 20, 'images/concept_images/')
+vae.save('saved_models/vae_weights')
