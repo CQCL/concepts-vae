@@ -28,7 +28,7 @@ def save_vae_clusters(vae, data, latent_dim, file_name='clusters'):
                 z_mean, z_var, _ = vae.encoder.predict(data[j][0])
                 z_mean_list.append(z_mean[:, i])
                 z_var_list.append(z_var[:, i])
-                label_list.append(data[j][1][:,k])
+                label_list.append(data[j][0][1][:,k])
             z_mean_list = np.hstack(np.array(z_mean_list,dtype=object).flatten())
             z_var_list = np.hstack(np.array(z_var_list,dtype=object).flatten())
             label_list = np.hstack(np.array(label_list,dtype=object).flatten())

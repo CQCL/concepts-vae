@@ -12,7 +12,7 @@ from vae.model import VAE
 from vae.data_generator import ImageGenerator
 
 
-IMAGE_DIR='images/various/'
+IMAGE_DIR='images/basic/'
 BATCH_SIZE=16
 NUM_EPOCHS=200
 
