@@ -46,6 +46,30 @@ def save_vae_clusters(vae, data, latent_dim, file_name='clusters'):
         plt.savefig(file_name + '_latent_dim' + str(i) + '.png')
 
 
+def plot_latent_space(vae, latent_space, plot_dim, dim_min, dim_max, num_images=30, image_size=64, figsize=15, file_name='image'):
+    latent_space =  np.ndarray.copy(np.array(latent_space))
+    figure = np.zeros((image_size, image_size * num_images, 3))
+    dim_value = np.linspace(dim_min, dim_max, num_images)
+
+    for i, dv in enumerate(dim_value):
+        latent_space[0][plot_dim] = dv
+        decoded_image = vae.decoder.predict(tf.convert_to_tensor(latent_space, dtype=np.float))[0]
+        figure[
+                :, i * image_size : (i + 1) * image_size, :
+            ] = decoded_image
+
+    plt.figure(figsize=(figsize, figsize/num_images + 1))
+    start_range = image_size // 2
+    end_range = num_images * image_size + start_range
+    pixel_range = np.arange(start_range, end_range, image_size)
+    sample_range_x = np.round(dim_value, 1)
+    plt.xticks(pixel_range, sample_range_x)
+    plt.yticks([])
+    plt.xlabel('latent dimension ' + str(plot_dim))
+    plt.imshow(figure)
+    plt.savefig(file_name + '_latent_dim' + str(plot_dim) + '.png')
+
+
 def save_images(folder_name, file_name, img):
     img *= 255
     for j in range(len(img)):
