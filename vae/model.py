@@ -10,7 +10,8 @@ class Sampling(layers.Layer):
 
     @tf.function
     def call(self, inputs):
-        z_mean, z_log_var = inputs
+        z_mean = inputs[0]
+        z_log_var = inputs[1]
         batch = tf.shape(z_mean)[0]
         dim = tf.shape(z_mean)[1]
         epsilon = keras.backend.random_normal(shape=(batch, dim))
@@ -125,7 +126,7 @@ class VAE(keras.Model):
         with tf.GradientTape() as tape:
             z_mean, z_log_var, z = self.encoder(data[0])
             reconstruction = self.decoder(z)
-            reconstruction_loss = tf.reduce_mean(
+            reconstruction_loss = 10 * tf.reduce_mean(
                 tf.reduce_sum(
                     self.reconstruction_loss_function(images, reconstruction), axis=(1,2)
                 )

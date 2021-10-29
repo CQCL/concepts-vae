@@ -91,7 +91,7 @@ def generate_images_from_gaussians(vae, means, log_vars):
     return img
 
 
-def generate_images_from_concept(vae, concept, num_images = 1, folder_name='images/concept_images/'):
+def generate_images_from_concept(vae, concept, num_latent_dim, num_images=1, folder_name='images/concept_images/'):
     ''' 
         vae = VAE
         concept = list of strings
@@ -107,7 +107,7 @@ def generate_images_from_concept(vae, concept, num_images = 1, folder_name='imag
         log_vars.append(vae.concept_gaussians.log_var[i][concept_number])
     means = np.array(means)
     log_vars = np.array(log_vars)
-    extra_dimensions = vae.params['latent_dim'] - len(concept)
+    extra_dimensions = num_latent_dim - len(concept)
     means = np.concatenate((means, np.zeros(extra_dimensions)))
     log_vars = np.concatenate((log_vars, np.ones(extra_dimensions)))
     means = np.tile(means,(num_images,1))
