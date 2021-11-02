@@ -33,7 +33,8 @@ params = {
     'num_channels': num_channels,
     'input_shape': [image_input_shape, (4,)],
     'use_labels_in_encoder': True,
-    'if_regularize_unit_normal': False
+    'if_regularize_unit_normal': True,
+    'beta': 1
 }
 
 vae = VAE(params)
