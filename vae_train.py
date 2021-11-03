@@ -32,6 +32,8 @@ params = {
     'pool_size':(2,2),
     'num_channels': num_channels,
     'input_shape': [image_input_shape, (4,)],
+    'model_type': 'conceptual',
+    # 'model_type': 'conditional',
     'use_labels_in_encoder': True,
     'if_regularize_unit_normal': True,
     'beta': 1

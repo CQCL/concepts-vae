@@ -58,13 +58,15 @@ class VAE(keras.Model):
         self.params = params
         self.encoder, conv_shape = self.encoder_model()
         self.decoder = self.decoder_model(conv_shape)
-        self.concept_gaussians = ConceptGaussians()
         self.encoder.summary()
         self.decoder.summary()
         self.total_loss_tracker = keras.metrics.Mean(name="total_loss")
-        self.reconstruction_loss_tracker = keras.metrics.Mean(
-            name="reconstruction_loss"
-        )
+        self.reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
+        if  self.params['model_type'] == 'conceptual':
+            self.kl_loss_function = self.kl_conceptual_fun
+            self.concept_gaussians = ConceptGaussians()
+        elif self.params['model_type'] == 'conditional':
+            self.kl_loss_function = self.kl_conditional_fun
         self.kl_loss_tracker = keras.metrics.Mean(name="kl_loss")
         # self.reconstruction_loss_function = tf.keras.losses.binary_crossentropy
         self.reconstruction_loss_function = tf.keras.losses.MeanSquaredError(reduction='none')
@@ -80,7 +82,7 @@ class VAE(keras.Model):
         # x = layers.MaxPooling2D(pool_size=self.params['pool_size'])(x)
         conv_shape = tf.keras.backend.int_shape(x) #Shape of conv to be provided to decoder
         x = layers.Flatten()(x)
-        if self.params['use_labels_in_encoder']:
+        if self.params['model_type'] == 'conceptual' and self.params['use_labels_in_encoder']:
             x = layers.Concatenate()([encoder_label_inputs, x])
         x = layers.Dense(256, activation="relu")(x)
         z_mean = layers.Dense(self.params['latent_dim'], name="z_mean")(x)
@@ -91,7 +93,12 @@ class VAE(keras.Model):
 
     def decoder_model(self, conv_shape):
         latent_inputs = keras.Input(shape=(self.params['latent_dim'],))
-        x = layers.Dense(256, activation="relu")(latent_inputs)
+        label_inputs = keras.Input(shape=self.params['input_shape'][1])
+        if self.params['model_type'] == 'conditional':
+            inputs = layers.Concatenate()([latent_inputs, label_inputs])
+        else:
+            inputs = latent_inputs
+        x = layers.Dense(256, activation="relu")(inputs)
         x = layers.Dense(conv_shape[1]*conv_shape[2]*conv_shape[3], activation="relu")(x)
         x = layers.Reshape((conv_shape[1], conv_shape[2], conv_shape[3]))(x)
         x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
@@ -102,7 +109,7 @@ class VAE(keras.Model):
         # x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
         # x = layers.UpSampling2D(size=self.params['pool_size'])(x)
         decoder_outputs = layers.Conv2DTranspose(self.params['num_channels'], self.params['kernel_size'], activation="relu", padding="same")(x)
-        decoder = keras.Model(latent_inputs, decoder_outputs, name="decoder")
+        decoder = keras.Model([latent_inputs, label_inputs], decoder_outputs, name="decoder")
         return decoder
 
     @property
@@ -116,34 +123,24 @@ class VAE(keras.Model):
     @tf.function
     def call(self, inputs):
         _, _, z = self.encoder(inputs)
-        reconstruction = self.decoder(z)
+        reconstruction = self.decoder([z, inputs[1]])
         return reconstruction
 
     @tf.function
     def train_step(self, data):
-        images = data[0][0]
-        labels = data[0][1]
+        images_and_labels = data[0]
         with tf.GradientTape() as tape:
-            z_mean, z_log_var, z = self.encoder(data[0])
-            reconstruction = self.decoder(z)
+            z_mean, z_log_var, z = self.encoder(images_and_labels)
+            reconstruction = self.decoder([z, images_and_labels[1]])
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(
-                    self.reconstruction_loss_function(images, reconstruction), axis=(1,2)
+                    self.reconstruction_loss_function(images_and_labels[0], reconstruction), axis=(1,2)
                 )
             )
-            concept_mean, concept_log_var = self.concept_gaussians(labels)
-            kl_loss = 0
-            for i in range(z_mean.shape[1]):
-                if i < len(enc.concept_domains):
-                    kl_loss = kl_loss + self.kl_loss_general(z_mean[:,i], z_log_var[:,i], concept_mean[:,i], concept_log_var[:,i])
-                    if self.params['if_regularize_unit_normal']:
-                        kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
-                else:
-                    kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
-            kl_loss = tf.reduce_mean(kl_loss)
+            kl_loss = self.kl_loss_function(images_and_labels, z_mean, z_log_var)
             total_loss = reconstruction_loss + self.params['beta'] * kl_loss
         grads = tape.gradient(total_loss, self.trainable_weights)
-        
+
         self.optimizer.apply_gradients((grad, weights) 
             for (grad, weights) in zip(grads, self.trainable_weights)
             if grad is not None)
@@ -165,3 +162,23 @@ class VAE(keras.Model):
     @tf.function
     def kl_loss_general(self, mean_0, log_var_0, mean_1, log_var_1):
         return -0.5 * (1 + log_var_0 - log_var_1 - tf.square(mean_1-mean_0)/tf.exp(log_var_1) - tf.exp(log_var_0)/tf.exp(log_var_1))
+
+    @tf.function
+    def kl_conceptual_fun(self, images_and_labels, z_mean, z_log_var):
+        concept_mean, concept_log_var = self.concept_gaussians(images_and_labels[1])
+        kl_loss = 0
+        for i in range(z_mean.shape[1]):
+            if i < len(enc.concept_domains):
+                kl_loss = kl_loss + self.kl_loss_general(z_mean[:,i], z_log_var[:,i], concept_mean[:,i], concept_log_var[:,i])
+                if self.params['if_regularize_unit_normal']:
+                    kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
+            else:
+                kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
+        tf.reduce_mean(kl_loss)
+        return kl_loss
+
+    @tf.function
+    def kl_conditional_fun(self, images_and_labels, z_mean, z_log_var):
+        kl_loss = self.kl_loss_normal(z_mean, z_log_var)
+        kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
+        return kl_loss
