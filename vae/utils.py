@@ -71,6 +71,7 @@ def plot_latent_space(vae, latent_space, plot_dim, dim_min, dim_max, num_images=
 
 
 def save_images(folder_name, file_name, img):
+    img = np.clip(img, 0, 1)
     img *= 255
     for j in range(len(img)):
         im = PIL.Image.fromarray(np.uint8(img[j]))
