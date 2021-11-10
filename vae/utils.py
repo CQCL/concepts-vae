@@ -53,7 +53,8 @@ def plot_latent_space(vae, latent_space, plot_dim, dim_min, dim_max, num_images=
 
     for i, dv in enumerate(dim_value):
         latent_space[0][plot_dim] = dv
-        decoded_image = vae.decoder.predict(tf.convert_to_tensor(latent_space, dtype=np.float))[0]
+        empty_labels = tf.zeros((latent_space.shape[0], 4))
+        decoded_image = vae.decoder.predict([tf.convert_to_tensor(latent_space, dtype=np.float), empty_labels])[0]
         figure[
                 :, i * image_size : (i + 1) * image_size, :
             ] = decoded_image
@@ -88,7 +89,8 @@ def generate_images_from_gaussians(vae, means, log_vars):
     '''
     input = tf.convert_to_tensor(np.array([means,log_vars], dtype=np.float))
     z = Sampling()(input)
-    img = vae.decoder.predict(z)
+    empty_labels = tf.zeros((means.shape[0], 4))
+    img = vae.decoder.predict([z, empty_labels])
     return img
 
 
@@ -126,8 +128,7 @@ def generate_images_from_multiple_concepts(vae, concept_list, num_images=10, fol
 def save_reconstructed_images_with_data(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
     image_num = 1
     for i in range(num_images):
-        _, _, z = vae.encoder.predict(data[i][0])
-        img = vae.decoder.predict(z)
+        img = vae.predict(data[i][0])
         img *= 255
         for j in range(len(img)):
             if image_num > num_images:
