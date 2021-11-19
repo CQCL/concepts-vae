@@ -51,9 +51,15 @@ def plot_latent_space(vae, latent_space, plot_dim, dim_min, dim_max, num_images=
     figure = np.zeros((image_size, image_size * num_images, 3))
     dim_value = np.linspace(dim_min, dim_max, num_images)
 
+    empty_labels = tf.zeros((latent_space.shape[0], 4))
+    original_image = vae.decoder.predict([tf.convert_to_tensor(latent_space, dtype=np.float), empty_labels])[0]
+    original_image = np.clip(original_image, 0, 1)
+    original_image *= 255
+    org_im = PIL.Image.fromarray(np.uint8(original_image))
+    org_im.save(os.path.join('',file_name + '_original_image.png'))
+   
     for i, dv in enumerate(dim_value):
         latent_space[0][plot_dim] = dv
-        empty_labels = tf.zeros((latent_space.shape[0], 4))
         decoded_image = vae.decoder.predict([tf.convert_to_tensor(latent_space, dtype=np.float), empty_labels])[0]
         figure[
                 :, i * image_size : (i + 1) * image_size, :
@@ -63,7 +69,7 @@ def plot_latent_space(vae, latent_space, plot_dim, dim_min, dim_max, num_images=
     start_range = image_size // 2
     end_range = num_images * image_size + start_range
     pixel_range = np.arange(start_range, end_range, image_size)
-    sample_range_x = np.round(dim_value, 1)
+    sample_range_x = np.round(dim_value, 2)
     plt.xticks(pixel_range, sample_range_x)
     plt.yticks([])
     plt.xlabel('latent dimension ' + str(plot_dim))
@@ -71,7 +77,7 @@ def plot_latent_space(vae, latent_space, plot_dim, dim_min, dim_max, num_images=
     plt.savefig(file_name + '_latent_dim' + str(plot_dim) + '.png')
 
 
-def save_images(folder_name, file_name, img):
+def save_image(folder_name, file_name, img):
     img = np.clip(img, 0, 1)
     img *= 255
     for j in range(len(img)):
@@ -116,8 +122,28 @@ def generate_images_from_concept(vae, concept, num_latent_dim, num_images=1, fol
     means = np.tile(means,(num_images,1))
     log_vars = np.tile(log_vars,(num_images,1))
     images = generate_images_from_gaussians(vae, means, log_vars)
-    save_images(folder_name, '_'.join(concept), images)
+    save_image(folder_name, '_'.join(concept), images)
 
+
+def generate_images_from_concept_without_sampling(vae, concept, num_latent_dim, folder_name='images/concept_images/', num_images=1):
+    ''' 
+        vae = VAE
+        concept = list of strings
+        num_images: how many images we want to generate
+        returns: nothing
+        saves image
+    '''
+    means = []
+    for i, domain in enumerate(enc.concept_domains):
+        concept_number = enc.enc_dict[domain][concept[i]]
+        means.append(vae.concept_gaussians.mean[i][concept_number])
+    means = np.array(means)
+    extra_dimensions = num_latent_dim - len(concept)
+    means = np.concatenate((means, np.zeros(extra_dimensions)))
+    means = np.tile(means,(num_images,1))
+    empty_labels = tf.zeros((means.shape[0], 4))
+    images = vae.decoder.predict([means, empty_labels])
+    save_image(folder_name, '_'.join(concept), images)
 
 def generate_images_from_multiple_concepts(vae, concept_list, num_images=10, folder_name='images/reconstructed/'):
     for _ in range(num_images):
@@ -125,14 +151,28 @@ def generate_images_from_multiple_concepts(vae, concept_list, num_images=10, fol
         generate_images_from_concept(vae, [colour, size, shape, position], 1, folder_name)
 
 
-def save_reconstructed_images_with_data(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
-    image_num = 1
-    for i in range(num_images):
-        img = vae.predict(data[i][0])
-        img *= 255
-        for j in range(len(img)):
-            if image_num > num_images:
-                return
-            im = PIL.Image.fromarray(np.uint8(img[j]))
-            im.save(os.path.join(folder_name, file_name + str(image_num) + '.png'))
-            image_num = image_num + 1
+# def save_reconstructed_images_with_data(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
+#     image_num = 1
+#     for i in range(num_images):
+#         # img = vae.predict(data[i][0])
+#         img = data[i][0][0]
+#         img *= 255
+#         for j in range(len(img)):
+#             if image_num > num_images:
+#                 return
+#             im = PIL.Image.fromarray(np.uint8(img[j]))
+#             im.save(os.path.join(folder_name, file_name + str(image_num) + 'original.png'))
+#             image_num = image_num + 1
+
+
+
+def save_reconstructed_images_with_data(vae, data, num_images=1, folder_name='images/reconstructed/', file_name='reconstructed'):
+    if num_images <= data[0][0][0].shape[0]:
+        img = vae.predict(data[0][0])
+        for i in range(num_images): 
+            org_img = data[0][0][0][i]
+            rec_img = img[i]
+            save_image(folder_name, 'original'+str(i),[org_img])
+            save_image(folder_name, 'reconstructed'+str(i),[rec_img])
+    else:
+        print('solve at a later time :)')
