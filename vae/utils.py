@@ -77,12 +77,15 @@ def plot_latent_space(vae, latent_space, plot_dim, dim_min, dim_max, num_images=
     plt.savefig(file_name + '_latent_dim' + str(plot_dim) + '.png')
 
 
-def save_image(folder_name, file_name, img):
+def save_image(folder_name, file_name, img, timestamp_in_name=True):
     img = np.clip(img, 0, 1)
     img *= 255
     for j in range(len(img)):
         im = PIL.Image.fromarray(np.uint8(img[j]))
-        im.save(os.path.join(folder_name, datetime.utcnow().strftime("%B_%d_%H%M%S%f_") + file_name + '.png'))
+        if timestamp_in_name:
+            im.save(os.path.join(folder_name, datetime.utcnow().strftime("%B_%d_%H%M%S%f_") + file_name + '.png'))
+        else:
+            im.save(os.path.join(folder_name, file_name + '.png'))
 
 
 def generate_images_from_gaussians(vae, means, log_vars):
