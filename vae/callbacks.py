@@ -29,9 +29,8 @@ class ImageSaveCallback(tf.keras.callbacks.Callback):
 
 
 class GaussianPlotCallback(tf.keras.callbacks.Callback):
-    def __init__(self, image_and_label, folder_name, **kwargs):
+    def __init__(self, folder_name, **kwargs):
         super(GaussianPlotCallback, self).__init__(**kwargs)
-        self.image_and_label = image_and_label[0]
         self.epoch_number = 0
         self.folder_name = folder_name
         self.concept_names = [['blue', 'red', 'green'],

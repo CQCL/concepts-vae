@@ -45,8 +45,8 @@ vae = VAE(params)
 vae.compile(optimizer=keras.optimizers.Adam())
 
 tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )
-imgCallback = ImageSaveCallback(data_it[0], 'images/training3/')
-gaussCallback = GaussianPlotCallback(data_it[0], 'images/training3/')
+imgCallback = ImageSaveCallback(data_it[0], 'images/training/')
+gaussCallback = GaussianPlotCallback('images/training/')
 
 vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=[tbCallBack, gaussCallback])
 
