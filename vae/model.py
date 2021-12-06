@@ -22,8 +22,8 @@ class ConceptGaussians(layers.Layer):
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains])
-        mean_initializer = keras.initializers.RandomUniform(minval=-10., maxval=10.)
-        log_var_initializer = keras.initializers.RandomUniform(minval=-7., maxval=0.5)
+        mean_initializer = keras.initializers.RandomUniform(minval=-1., maxval=1.)
+        log_var_initializer = keras.initializers.RandomUniform(minval=-3., maxval=0.)
         self.mean = self.add_weight(name='kernel',
                                       shape=(len(enc.concept_domains), max_concepts),
                                       initializer=mean_initializer,
