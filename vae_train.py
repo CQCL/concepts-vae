@@ -3,6 +3,7 @@ import os
 
 from datetime import datetime
 import tensorflow as tf
+from vae.callbacks import GaussianPlotCallback, ImageSaveCallback
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
@@ -44,8 +45,12 @@ vae = VAE(params)
 vae.compile(optimizer=keras.optimizers.Adam())
 
 tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )
+imgCallback = ImageSaveCallback(data_it[0], 'images/training3/')
+gaussCallback = GaussianPlotCallback(data_it[0], 'images/training3/')
 
-vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=[tbCallBack])
+vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=[tbCallBack, gaussCallback])
+
+gaussCallback.save_video_from_images('gaus_vid_regularized')
 
 save_location = os.path.join('saved_models', 'vae_weights_' + datetime.utcnow().strftime("%B_%d_%H:%M"))
 vae.save(save_location)
