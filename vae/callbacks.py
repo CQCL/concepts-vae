@@ -37,28 +37,7 @@ class GaussianPlotCallback(tf.keras.callbacks.Callback):
                               ['small', 'medium', 'large'],
                               ['circle', 'square', 'triangle'],
                               ['top', 'centre', 'bottom']]
-        self.concept_encoding = []
-        for i in range(len(self.concept_names)):
-            encoding = enc.enc_dict[enc.concept_domains[i]]
-            self.concept_encoding.append([encoding[concept] for concept in self.concept_names[i]])
-    
-    def get_concept_gaussians(self):
-        all_means = []
-        all_log_vars = []
-        for i in range(4):
-            con_enc = self.concept_encoding[i]
-            means = []
-            log_vars = []
-            for j in range(len(con_enc)):
-                label_array = np.zeros((1,4))
-                label_array[0][i] = con_enc[j]
-                m, lv = self.model.concept_gaussians(label_array)
-                means.append(m[0][i])
-                log_vars.append(lv[0][i])
-            all_means.append(means)
-            all_log_vars.append(log_vars)
-        return all_means, all_log_vars
-
+        self.concept_encoding = utils.get_concept_encoding(self.concept_names)
     
     def plot_gaussians(self, file_name, concept_names, epoch, means, log_vars):
         sigmas = tf.sqrt(tf.exp(log_vars))
@@ -72,7 +51,7 @@ class GaussianPlotCallback(tf.keras.callbacks.Callback):
         plt.close()
 
     def on_epoch_begin(self, epoch, logs=None):
-        means, log_vars = self.get_concept_gaussians()
+        means, log_vars = utils.get_concept_gaussians(self.concept_encoding, self.model)
         for i in range(4):
             file_name = os.path.join(self.folder_name, 'gaussian_epoch_' + str(epoch) + '_dim_' + str(i) + '.png')
             self.plot_gaussians(file_name, self.concept_names[i], epoch, means[i], log_vars[i])

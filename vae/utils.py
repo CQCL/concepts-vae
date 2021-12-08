@@ -179,3 +179,23 @@ def save_reconstructed_images_with_data(vae, data, num_images=1, folder_name='im
             save_image(folder_name, 'reconstructed'+str(i),[rec_img])
     else:
         print('solve at a later time :)')
+        
+
+# get gaussians
+
+#concept_names should be a list of list
+def get_concept_encoding(concept_names):
+    concept_encoding = []
+    for i in range(len(concept_names)):
+        encoding = enc.enc_dict[enc.concept_domains[i]]
+        concept_encoding.append([encoding[concept] for concept in concept_names[i]])
+    return concept_encoding
+
+def get_concept_gaussians(concept_encoding, model):
+    means = [ np.take(model.concept_gaussians.mean[i], concept_encoding[i])
+                        for i in range(len(concept_encoding)) ]
+    log_vars = [ np.take(model.concept_gaussians.log_var[i], concept_encoding[i])
+                        for i in range(len(concept_encoding)) ]
+    return means, log_vars
+
+
