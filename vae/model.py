@@ -68,8 +68,7 @@ class VAE(keras.Model):
         elif self.params['model_type'] == 'conditional':
             self.kl_loss_function = self.kl_conditional_fun
         self.kl_loss_tracker = keras.metrics.Mean(name="kl_loss")
-        # self.reconstruction_loss_function = tf.keras.losses.binary_crossentropy
-        self.reconstruction_loss_function = tf.keras.losses.MeanSquaredError(reduction='none')
+        self.mse = tf.keras.losses.MeanSquaredError(reduction='none')
 
     def encoder_model(self):
         encoder_image_inputs = keras.Input(shape=self.params['input_shape'][0])
@@ -129,7 +128,7 @@ class VAE(keras.Model):
     @tf.function
     def train_step(self, data):
         with tf.GradientTape() as tape:
-            total_loss, reconstruction_loss, kl_loss = self.calculate_loss(data)
+            total_loss, reconstruction_loss, kl_loss = self.compute_loss(data)
         grads = tape.gradient(total_loss, self.trainable_weights)
 
         self.optimizer.apply_gradients((grad, weights) 
@@ -146,19 +145,21 @@ class VAE(keras.Model):
         }
 
     @tf.function
-    def calculate_loss(self, data):
+    def compute_loss(self, data):
         images_and_labels = data[0]
         z_mean, z_log_var, z = self.encoder(images_and_labels)
-        reconstruction = self.decoder([z, images_and_labels[1]])
-        reconstruction_loss = tf.reduce_mean(
-                tf.reduce_sum(
-                    self.reconstruction_loss_function(images_and_labels[0], reconstruction), axis=(1,2)
-                )
-            )
+        reconstruction_loss = self.compute_reconstruction_loss(images_and_labels, z)
         kl_loss = self.kl_loss_function(images_and_labels, z_mean, z_log_var)
         total_loss = reconstruction_loss + self.params['beta'] * kl_loss
         return total_loss, reconstruction_loss, kl_loss
 
+    @tf.function
+    def compute_reconstruction_loss(self, images_and_labels, z):
+        reconstruction = self.decoder([z, images_and_labels[1]])
+        reconstruction_loss = tf.reduce_mean(tf.reduce_sum(
+            self.mse(images_and_labels[0], reconstruction), axis=(1,2)
+        ))
+        return reconstruction_loss
 
     @tf.function
     def kl_loss_normal(self, z_mean, z_log_var):
