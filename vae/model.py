@@ -179,7 +179,7 @@ class VAE(keras.Model):
                     kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
             else:
                 kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
-        tf.reduce_mean(kl_loss)
+        kl_loss = tf.reduce_mean(kl_loss)
         return kl_loss
 
     @tf.function
