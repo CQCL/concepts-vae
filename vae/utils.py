@@ -1,4 +1,5 @@
 from datetime import datetime
+import itertools
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -181,17 +182,28 @@ def save_reconstructed_images_with_data(vae, data, num_images=1, folder_name='im
         print('solve at a later time :)')
         
 
-# get gaussians
+def encode_or_decode(concept):
+    flatten_list = False
+    if type(concept[0]) != list:
+        concept = [[c] for c in concept]
+        flatten_list = True
+    if type(concept[0][0]) == str:
+        enc_or_dec_dict = enc.enc_dict
+    else:
+        enc_or_dec_dict = enc.dec_dict
+    converted_concept = []
+    for i in range(len(concept)):
+        conversion_dict = enc_or_dec_dict[enc.concept_domains[i]]
+        converted_concept.append([conversion_dict[concept] for concept in concept[i]])
+    if flatten_list:
+        converted_concept = list(itertools.chain.from_iterable(converted_concept))
+    return converted_concept
 
-#concept_names should be a list of list
-def get_concept_encoding(concept_names):
-    concept_encoding = []
-    for i in range(len(concept_names)):
-        encoding = enc.enc_dict[enc.concept_domains[i]]
-        concept_encoding.append([encoding[concept] for concept in concept_names[i]])
-    return concept_encoding
-
-def get_concept_gaussians(concept_encoding, model):
+def get_concept_gaussians(concept_encoding_or_names, model):
+    if type(concept_encoding_or_names[0][0]) == str:
+        concept_encoding = encode_or_decode(concept_encoding_or_names)
+    else:
+        concept_encoding = concept_encoding_or_names
     means = [ np.take(model.concept_gaussians.mean[i], concept_encoding[i])
                         for i in range(len(concept_encoding)) ]
     log_vars = [ np.take(model.concept_gaussians.log_var[i], concept_encoding[i])

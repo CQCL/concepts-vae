@@ -37,7 +37,7 @@ class GaussianPlotCallback(tf.keras.callbacks.Callback):
                               ['small', 'medium', 'large'],
                               ['circle', 'square', 'triangle'],
                               ['top', 'centre', 'bottom']]
-        self.concept_encoding = utils.get_concept_encoding(self.concept_names)
+        self.concept_encoding = utils.encode_or_decode(self.concept_names)
     
     def plot_gaussians(self, file_name, concept_names, epoch, means, log_vars):
         sigmas = tf.sqrt(tf.exp(log_vars))
