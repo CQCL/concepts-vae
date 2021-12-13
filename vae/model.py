@@ -128,17 +128,8 @@ class VAE(keras.Model):
 
     @tf.function
     def train_step(self, data):
-        images_and_labels = data[0]
         with tf.GradientTape() as tape:
-            z_mean, z_log_var, z = self.encoder(images_and_labels)
-            reconstruction = self.decoder([z, images_and_labels[1]])
-            reconstruction_loss = tf.reduce_mean(
-                tf.reduce_sum(
-                    self.reconstruction_loss_function(images_and_labels[0], reconstruction), axis=(1,2)
-                )
-            )
-            kl_loss = self.kl_loss_function(images_and_labels, z_mean, z_log_var)
-            total_loss = reconstruction_loss + self.params['beta'] * kl_loss
+            total_loss, reconstruction_loss, kl_loss = self.calculate_loss(data)
         grads = tape.gradient(total_loss, self.trainable_weights)
 
         self.optimizer.apply_gradients((grad, weights) 
@@ -153,6 +144,20 @@ class VAE(keras.Model):
             "reconstruction_loss": self.reconstruction_loss_tracker.result(),
             "kl_loss": self.kl_loss_tracker.result(),
         }
+
+    @tf.function
+    def calculate_loss(self, data):
+        images_and_labels = data[0]
+        z_mean, z_log_var, z = self.encoder(images_and_labels)
+        reconstruction = self.decoder([z, images_and_labels[1]])
+        reconstruction_loss = tf.reduce_mean(
+                tf.reduce_sum(
+                    self.reconstruction_loss_function(images_and_labels[0], reconstruction), axis=(1,2)
+                )
+            )
+        kl_loss = self.kl_loss_function(images_and_labels, z_mean, z_log_var)
+        total_loss = reconstruction_loss + self.params['beta'] * kl_loss
+        return total_loss, reconstruction_loss, kl_loss
 
 
     @tf.function
