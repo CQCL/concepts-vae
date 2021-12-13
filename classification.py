@@ -12,7 +12,7 @@ from vae import encoding_dictionary as enc
 from vae.data_generator import ImageGenerator
 from vae.utils import encode_or_decode, get_concept_gaussians, save_image
 
-vae = keras.models.load_model('saved_models/vae_weights_December_06_20:15')
+vae = keras.models.load_model('saved_models/vae_weights_December_13_17:23')
 data_it = ImageGenerator('images/basic', batch_size=1)
 
 
@@ -23,11 +23,10 @@ CONCEPT_NAMES = [['blue', 'red', 'green'],
 
 NUM_LATENT_DIM = 6
 
-
 # classification using decoder
 def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES, num_samples=10, save_images=False):
     if save_images:
-        save_image('images/temp/', 'image_to_classify', [image])
+        save_image('images/classify/', 'image_to_classify', [image])
     sampling = Sampling()
     means, log_vars = get_concept_gaussians(concept_names, model)
     concept_gaussians_dict = create_dict(concept_names, means, log_vars)
@@ -47,10 +46,13 @@ def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES, num_sample
         labels = np.stack([encode_or_decode(concept_combination)] * num_samples, axis=0)
         images = np.stack([image] * num_samples, axis=0)
 
+        # set dtype to float32
+        gaussians = np.array(gaussians, dtype=np.float32)
+        labels = np.array(labels, dtype=np.float32)
+        images = np.array(images, dtype=np.float32)
+
         gaussians_sample = sampling(gaussians)
-        concept_decoded_image = model.decoder([gaussians_sample, labels])
-        mse = keras.losses.MeanSquaredError(reduction='none')
-        reconstruction_loss = tf.reduce_mean(tf.reduce_sum(mse(images, concept_decoded_image), axis=(1,2))) 
+        reconstruction_loss = model.compute_reconstruction_loss((images, labels), gaussians_sample)
         reconstruction_losses[concept_combination] = reconstruction_loss
 
     # sort the dictionary by the reconstruction loss
@@ -69,13 +71,40 @@ def create_dict(keys, *values):
     return dictionary
 
 
+def classify_using_encoder(image, model, concept_names=CONCEPT_NAMES, num_samples=10, save_images=False):
+    if save_images:
+        save_image('images/classify/', 'image_to_classify', [image])
+    concept_combinations = list(itertools.product(*concept_names))
+    # for each concept combination, encode the image and get the loss
+    total_losses = {}
+    reconstruction_losses = {}
+    kl_losses = {}
+    for concept_combination in concept_combinations:
+        labels = np.stack([encode_or_decode(concept_combination)] * num_samples, axis=0)
+        images = np.stack([image] * num_samples, axis=0)
+        labels = np.array(labels, dtype=np.float32)
+        images = np.array(images, dtype=np.float32)
+        total_loss, reconstruction_loss, kl_loss = model.compute_loss(((images, labels),))
+        total_losses[concept_combination] = total_loss
+        reconstruction_losses[concept_combination] = reconstruction_loss
+        kl_losses[concept_combination] = kl_loss
+    
+    # sort the dictionary by the loss
+    total_losses = sorted(total_losses.items(), key=lambda x: x[1])
+    reconstruction_losses = sorted(reconstruction_losses.items(), key=lambda x: x[1])
+    kl_losses = sorted(kl_losses.items(), key=lambda x: x[1])
+
+    return total_losses, reconstruction_losses, kl_losses
+
+
 success = 0
 print('truth\t\t\t\t\t prediction')
 itr = len(data_it)
 # itr = 100
 for i in range(itr):
-    sorted_reconstruction_losses = classify_using_decoder(data_it[i][0][0][0], vae, num_samples=20)
-    prediction_label = list(sorted_reconstruction_losses[0][0])
+    total_losses, reconstruction_losses, kl_losses = classify_using_encoder(data_it[i][0][0][0], vae, num_samples=20)
+    # reconstruction_losses = classify_using_decoder(data_it[i][0][0][0], vae, num_samples=20)
+    prediction_label = list(total_losses[0][0])
     true_label = encode_or_decode(data_it[i][0][1][0])
     print(true_label, prediction_label)
     if true_label == prediction_label:

@@ -36,8 +36,8 @@ params = {
     'model_type': 'conceptual',
     # 'model_type': 'conditional',
     'use_labels_in_encoder': True,
-    'if_regularize_unit_normal': False,
-    'beta': 1.5
+    'if_regularize_unit_normal': True,
+    'beta': 1
 }
 
 vae = VAE(params)
