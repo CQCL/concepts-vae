@@ -36,8 +36,8 @@ params = {
     'model_type': 'conceptual',
     # 'model_type': 'conditional',
     'use_labels_in_encoder': True,
-    'if_regularize_unit_normal': True,
-    'beta': 1
+    'if_regularize_unit_normal': False,
+    'beta': 1.5
 }
 
 vae = VAE(params)
@@ -47,10 +47,13 @@ vae.compile(optimizer=keras.optimizers.Adam())
 tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )
 imgCallback = ImageSaveCallback(data_it[0], 'images/training/')
 gaussCallback = GaussianPlotCallback('images/training/')
+# add/remove callbacks if you want
+callbacks = [tbCallBack, gaussCallback]
 
-vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=[tbCallBack, gaussCallback])
+vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=callbacks)
 
-gaussCallback.save_video_from_images('gaus_vid_regularized')
+if gaussCallback in callbacks:
+    gaussCallback.save_video_from_images('gaus_vid')
 
 save_location = os.path.join('saved_models', 'vae_weights_' + datetime.utcnow().strftime("%B_%d_%H:%M"))
 vae.save(save_location)

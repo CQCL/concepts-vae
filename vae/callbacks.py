@@ -21,7 +21,7 @@ class ImageSaveCallback(tf.keras.callbacks.Callback):
         utils.save_image(self.folder_name, 'original_image', 
             np.array([self.image_and_label[0][0]]), timestamp_in_name=False)
 
-    def on_epoch_begin(self, epoch, logs=None):
+    def on_epoch_end(self, epoch, logs=None):
         reconstructed = self.model.call(self.image_and_label)
         file_name = 'reconstructed_epoch_' + str(epoch)
         utils.save_image(self.folder_name, file_name, 
@@ -50,7 +50,7 @@ class GaussianPlotCallback(tf.keras.callbacks.Callback):
         plt.savefig(file_name)
         plt.close()
 
-    def on_epoch_begin(self, epoch, logs=None):
+    def on_epoch_end(self, epoch, logs=None):
         means, log_vars = utils.get_concept_gaussians(self.concept_encoding, self.model)
         for i in range(4):
             file_name = os.path.join(self.folder_name, 'gaussian_epoch_' + str(epoch) + '_dim_' + str(i) + '.png')
