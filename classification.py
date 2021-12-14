@@ -22,7 +22,6 @@ CONCEPT_NAMES = [['blue', 'red', 'green'],
                  ['circle', 'square', 'triangle'],
                  ['top', 'centre', 'bottom']]
 
-NUM_LATENT_DIM = 6
 
 # classification using decoder
 def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES, 
@@ -39,12 +38,12 @@ def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES,
     for concept_combination in concept_combinations:
         gaussians = [concept_gaussians_dict[concept] for concept in concept_combination]
         # add unit normal gaussians to make the length of the gaussians equal to the number of latent dimensions
-        unit_gaussians = np.array([(0, 1)] * (NUM_LATENT_DIM - len(gaussians)))
+        unit_gaussians = np.array([(0, 1)] * (model.get_config()['latent_dim'] - len(gaussians)))
         gaussians = np.concatenate([np.array(gaussians), unit_gaussians])
 
         # stack gaussians, concept labels, and image num_samples times
         gaussians = np.stack([gaussians] * num_samples, axis=0)
-        gaussians = gaussians.reshape((2, num_samples, NUM_LATENT_DIM))
+        gaussians = gaussians.reshape((2, num_samples, model.get_config()['latent_dim']))
         labels = np.stack([encode_or_decode(concept_combination)] * num_samples, axis=0)
         images = np.stack([image] * num_samples, axis=0)
 

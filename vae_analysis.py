@@ -10,8 +10,6 @@ from vae.data_generator import ImageGenerator
 from vae import utils
 
 
-NUM_LATENT_DIM = 6
-
 vae = keras.models.load_model('saved_models/vae_weights_October_26_19:26')
 data_it = ImageGenerator('images/basic', batch_size=1000)
 
@@ -27,7 +25,7 @@ for i in range(6):
 
 
 utils.save_reconstructed_images_with_data(vae, data_it, num_images=100, folder_name='images/reconstructed/', file_name='reconstructed')
-utils.save_vae_clusters(vae, data_it, NUM_LATENT_DIM, 'images/clusters/cluster')
+utils.save_vae_clusters(vae, data_it, 'images/clusters/cluster')
 
 concept1 = ['red','large','square','bottom']
-utils.generate_images_from_concept(vae, concept1, NUM_LATENT_DIM, 20, 'images/concept_images/')
+utils.generate_images_from_concept(vae, concept1, 20, 'images/concept_images/')

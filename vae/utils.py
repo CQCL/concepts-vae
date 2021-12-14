@@ -16,9 +16,9 @@ def get_cmap(n, name='rainbow'):
     return plt.cm.get_cmap(name, n)
 
 
-def save_vae_clusters(vae, data, latent_dim, file_name='clusters'):
+def save_vae_clusters(vae, data, file_name='clusters'):
     # display a 2D plot of the digit classes in the latent space
-    for i in range(latent_dim):
+    for i in range(vae.get_config()['latent_dim']):
         fig = plt.figure(figsize=(12, 10))
         axs = fig.subplots(2,2).flatten()
         for k, plot_label in enumerate(enc.concept_domains):
@@ -104,7 +104,7 @@ def generate_images_from_gaussians(vae, means, log_vars):
     return img
 
 
-def generate_images_from_concept(vae, concept, num_latent_dim, num_images=1, folder_name='images/concept_images/'):
+def generate_images_from_concept(vae, concept, num_images=1, folder_name='images/concept_images/'):
     ''' 
         vae = VAE
         concept = list of strings
@@ -120,7 +120,7 @@ def generate_images_from_concept(vae, concept, num_latent_dim, num_images=1, fol
         log_vars.append(vae.concept_gaussians.log_var[i][concept_number])
     means = np.array(means)
     log_vars = np.array(log_vars)
-    extra_dimensions = num_latent_dim - len(concept)
+    extra_dimensions = vae.get_config()['latent_dim'] - len(concept)
     means = np.concatenate((means, np.zeros(extra_dimensions)))
     log_vars = np.concatenate((log_vars, np.ones(extra_dimensions)))
     means = np.tile(means,(num_images,1))
@@ -129,7 +129,7 @@ def generate_images_from_concept(vae, concept, num_latent_dim, num_images=1, fol
     save_image(folder_name, '_'.join(concept), images)
 
 
-def generate_images_from_concept_without_sampling(vae, concept, num_latent_dim, folder_name='images/concept_images/', num_images=1):
+def generate_images_from_concept_without_sampling(vae, concept, folder_name='images/concept_images/', num_images=1):
     ''' 
         vae = VAE
         concept = list of strings
@@ -142,7 +142,7 @@ def generate_images_from_concept_without_sampling(vae, concept, num_latent_dim, 
         concept_number = enc.enc_dict[domain][concept[i]]
         means.append(vae.concept_gaussians.mean[i][concept_number])
     means = np.array(means)
-    extra_dimensions = num_latent_dim - len(concept)
+    extra_dimensions = vae.get_config()['latent_dim'] - len(concept)
     means = np.concatenate((means, np.zeros(extra_dimensions)))
     means = np.tile(means,(num_images,1))
     empty_labels = tf.zeros((means.shape[0], 4))
