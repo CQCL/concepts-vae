@@ -1,6 +1,8 @@
 import itertools
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import confusion_matrix, classification_report
+from vae import encoding_dictionary as enc
 
 from vae.model import Sampling
 config = tf.compat.v1.ConfigProto()
@@ -8,11 +10,10 @@ config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
 from tensorflow import keras
 
-from vae import encoding_dictionary as enc
 from vae.data_generator import ImageGenerator
 from vae.utils import encode_or_decode, get_concept_gaussians, save_image
 
-vae = keras.models.load_model('saved_models/vae_weights_December_13_17:23')
+vae = keras.models.load_model('saved_models/vae_weights_December_14_11:29')
 data_it = ImageGenerator('images/basic', batch_size=1)
 
 
@@ -24,7 +25,8 @@ CONCEPT_NAMES = [['blue', 'red', 'green'],
 NUM_LATENT_DIM = 6
 
 # classification using decoder
-def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES, num_samples=10, save_images=False):
+def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES, 
+                           num_samples=10, save_images=False, return_prediction_list=False):
     if save_images:
         save_image('images/classify/', 'image_to_classify', [image])
     sampling = Sampling()
@@ -57,7 +59,10 @@ def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES, num_sample
 
     # sort the dictionary by the reconstruction loss
     sorted_reconstruction_losses = sorted(reconstruction_losses.items(), key=lambda x: x[1])
-    return sorted_reconstruction_losses
+    if return_prediction_list:
+        return sorted_reconstruction_losses
+    else:
+        return list(sorted_reconstruction_losses[0][0])
 
 
 def create_dict(keys, *values):
@@ -71,7 +76,8 @@ def create_dict(keys, *values):
     return dictionary
 
 
-def classify_using_encoder(image, model, concept_names=CONCEPT_NAMES, num_samples=10, save_images=False):
+def classify_using_encoder(image, model, concept_names=CONCEPT_NAMES, 
+                           num_samples=10, save_images=False, return_prediction_list=False):
     if save_images:
         save_image('images/classify/', 'image_to_classify', [image])
     concept_combinations = list(itertools.product(*concept_names))
@@ -93,20 +99,46 @@ def classify_using_encoder(image, model, concept_names=CONCEPT_NAMES, num_sample
     total_losses = sorted(total_losses.items(), key=lambda x: x[1])
     reconstruction_losses = sorted(reconstruction_losses.items(), key=lambda x: x[1])
     kl_losses = sorted(kl_losses.items(), key=lambda x: x[1])
+    if return_prediction_list:
+        return total_losses, reconstruction_losses, kl_losses
+    else:
+        return list(total_losses[0][0])
 
-    return total_losses, reconstruction_losses, kl_losses
+def print_results(result, title, concept_names=CONCEPT_NAMES):
+    print('\n' + title + '\n')
+    for i in range(len(concept_names)):
+        print(enc.concept_domains[i])
+        print(result[i])
 
 
-success = 0
-print('truth\t\t\t\t\t prediction')
-itr = len(data_it)
-# itr = 100
-for i in range(itr):
-    total_losses, reconstruction_losses, kl_losses = classify_using_encoder(data_it[i][0][0][0], vae, num_samples=20)
-    # reconstruction_losses = classify_using_decoder(data_it[i][0][0][0], vae, num_samples=20)
-    prediction_label = list(total_losses[0][0])
-    true_label = encode_or_decode(data_it[i][0][1][0])
-    print(true_label, prediction_label)
-    if true_label == prediction_label:
-        success += 1
-print('accuracy: ' + str(success / itr * 100) + '%')
+num_samples = 50 # number of samples to use for classification
+num_images = 200 # number of images to classify
+encoder_prediction_labels = []
+decoder_prediction_labels = []
+truth_labels = []
+for i in range(num_images):
+    truth_labels.append(encode_or_decode(data_it[i][0][1][0]))
+    encoder_prediction_labels.append(classify_using_encoder(data_it[i][0][0][0], vae, num_samples=num_samples))
+    decoder_prediction_labels.append(classify_using_decoder(data_it[i][0][0][0], vae, num_samples=num_samples))
+encoder_prediction_labels = np.array(encoder_prediction_labels).T
+decoder_prediction_labels = np.array(decoder_prediction_labels).T
+truth_labels = np.array(truth_labels).T
+
+# create classification report for each concept domain
+encoder_classification_reports = []
+decoder_classification_reports = []
+for i in range(len(CONCEPT_NAMES)):
+    encoder_classification_reports.append(classification_report(truth_labels[i], encoder_prediction_labels[i]))
+    decoder_classification_reports.append(classification_report(truth_labels[i], decoder_prediction_labels[i]))
+
+# create confusion matrix
+encoder_confusion_matrix = []
+decoder_confusion_matrix = []
+for i in range(len(CONCEPT_NAMES)):
+    encoder_confusion_matrix.append(confusion_matrix(truth_labels[i], encoder_prediction_labels[i], labels=CONCEPT_NAMES[i]))
+    decoder_confusion_matrix.append(confusion_matrix(truth_labels[i], decoder_prediction_labels[i], labels=CONCEPT_NAMES[i]))
+
+print_results(encoder_classification_reports, 'Encoder Classification Report')
+print_results(decoder_classification_reports, 'Decoder Classification Report')
+print_results(encoder_confusion_matrix, 'Encoder Confusion Matrix')
+print_results(decoder_confusion_matrix, 'Decoder Confusion Matrix')

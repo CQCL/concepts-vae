@@ -30,7 +30,7 @@ params = {
     'num_strides': 2,
     'kernel_size': 4,
     'latent_dim': 6,
-    'pool_size':(2,2),
+    'pool_size': (2,2),
     'num_channels': num_channels,
     'input_shape': [image_input_shape, (4,)],
     'model_type': 'conceptual',
