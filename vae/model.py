@@ -69,6 +69,9 @@ class VAE(keras.Model):
             self.kl_loss_function = self.kl_conditional_fun
         self.kl_loss_tracker = keras.metrics.Mean(name="kl_loss")
         self.mse = tf.keras.losses.MeanSquaredError(reduction='none')
+    
+    def get_config(self):
+        return self.params
 
     def encoder_model(self):
         encoder_image_inputs = keras.Input(shape=self.params['input_shape'][0])
