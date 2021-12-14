@@ -31,4 +31,4 @@ class ImageGenerator(keras.utils.Sequence) :
             keywords = file_name.split('_')
             for j, concept in enumerate(enc.concept_domains):
                 batch_labels[i][j] = enc.enc_dict[concept][keywords[j+1]]
-        return [batch_images, batch_labels], 
+        return [batch_images, batch_labels]

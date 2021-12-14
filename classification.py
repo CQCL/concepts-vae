@@ -89,7 +89,7 @@ def classify_using_encoder(image, model, concept_names=CONCEPT_NAMES,
         images = np.stack([image] * num_samples, axis=0)
         labels = np.array(labels, dtype=np.float32)
         images = np.array(images, dtype=np.float32)
-        total_loss, reconstruction_loss, kl_loss = model.compute_loss(((images, labels),))
+        total_loss, reconstruction_loss, kl_loss = model.compute_loss((images, labels))
         total_losses[concept_combination] = total_loss
         reconstruction_losses[concept_combination] = reconstruction_loss
         kl_losses[concept_combination] = kl_loss
@@ -116,9 +116,9 @@ encoder_prediction_labels = []
 decoder_prediction_labels = []
 truth_labels = []
 for i in range(num_images):
-    truth_labels.append(encode_or_decode(data_it[i][0][1][0]))
-    encoder_prediction_labels.append(classify_using_encoder(data_it[i][0][0][0], vae, num_samples=num_samples))
-    decoder_prediction_labels.append(classify_using_decoder(data_it[i][0][0][0], vae, num_samples=num_samples))
+    truth_labels.append(encode_or_decode(data_it[i][1][0]))
+    encoder_prediction_labels.append(classify_using_encoder(data_it[i][0][0], vae, num_samples=num_samples))
+    decoder_prediction_labels.append(classify_using_decoder(data_it[i][0][0], vae, num_samples=num_samples))
 encoder_prediction_labels = np.array(encoder_prediction_labels).T
 decoder_prediction_labels = np.array(decoder_prediction_labels).T
 truth_labels = np.array(truth_labels).T

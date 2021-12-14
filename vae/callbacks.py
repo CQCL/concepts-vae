@@ -14,7 +14,7 @@ from vae import utils
 class ImageSaveCallback(tf.keras.callbacks.Callback):
     def __init__(self, image_and_label, folder_name, **kwargs):
         super(ImageSaveCallback, self).__init__(**kwargs)
-        self.image_and_label = image_and_label[0]
+        self.image_and_label = image_and_label
         self.epoch_number = 0
         self.folder_name = folder_name
         self.img_frames = []

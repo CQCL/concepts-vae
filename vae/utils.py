@@ -26,10 +26,10 @@ def save_vae_clusters(vae, data, file_name='clusters'):
             z_var_list=[]
             label_list=[]
             for j in range(len(data)):
-                z_mean, z_var, _ = vae.encoder.predict(data[j][0])
+                z_mean, z_var, _ = vae.encoder.predict(data[j])
                 z_mean_list.append(z_mean[:, i])
                 z_var_list.append(z_var[:, i])
-                label_list.append(data[j][0][1][:,k])
+                label_list.append(data[j][1][:,k])
             z_mean_list = np.hstack(np.array(z_mean_list,dtype=object).flatten())
             z_var_list = np.hstack(np.array(z_var_list,dtype=object).flatten())
             label_list = np.hstack(np.array(label_list,dtype=object).flatten())
@@ -158,8 +158,8 @@ def generate_images_from_multiple_concepts(vae, concept_list, num_images=10, fol
 # def save_reconstructed_images_with_data(vae, data, num_images=10, folder_name='images/reconstructed/', file_name='reconstructed'):
 #     image_num = 1
 #     for i in range(num_images):
-#         # img = vae.predict(data[i][0])
-#         img = data[i][0][0]
+#         # img = vae.predict(data[i])
+#         img = data[i][0]
 #         img *= 255
 #         for j in range(len(img)):
 #             if image_num > num_images:
@@ -171,10 +171,10 @@ def generate_images_from_multiple_concepts(vae, concept_list, num_images=10, fol
 
 
 def save_reconstructed_images_with_data(vae, data, num_images=1, folder_name='images/reconstructed/', file_name='reconstructed'):
-    if num_images <= data[0][0][0].shape[0]:
-        img = vae.predict(data[0][0])
+    if num_images <= data[0][0].shape[0]:
+        img = vae.predict(data[0])
         for i in range(num_images): 
-            org_img = data[0][0][0][i]
+            org_img = data[0][0][i]
             rec_img = img[i]
             save_image(folder_name, 'original'+str(i),[org_img])
             save_image(folder_name, 'reconstructed'+str(i),[rec_img])
