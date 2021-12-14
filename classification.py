@@ -29,17 +29,22 @@ def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES,
     if save_images:
         save_image('images/classify/', 'image_to_classify', [image])
     sampling = Sampling()
-    means, log_vars = get_concept_gaussians(concept_names, model)
-    concept_gaussians_dict = create_dict(concept_names, means, log_vars)
+    if model.get_config()['model_type'] == 'conceptual':
+        means, log_vars = get_concept_gaussians(concept_names, model)
+        concept_gaussians_dict = create_dict(concept_names, means, log_vars)
     concept_combinations = list(itertools.product(*concept_names))
 
     # for all concept combinations, reconstruct an image using concept gaussian and get the reconstruction loss
     reconstruction_losses = {}
     for concept_combination in concept_combinations:
-        gaussians = [concept_gaussians_dict[concept] for concept in concept_combination]
-        # add unit normal gaussians to make the length of the gaussians equal to the number of latent dimensions
-        unit_gaussians = np.array([(0, 1)] * (model.get_config()['latent_dim'] - len(gaussians)))
-        gaussians = np.concatenate([np.array(gaussians), unit_gaussians])
+        if model.get_config()['model_type'] == 'conceptual':
+            concept_gaussians = np.array([concept_gaussians_dict[concept] for concept in concept_combination])
+            # add unit normal gaussians to make the length of the gaussians equal to the number of latent dimensions
+            unit_gaussians = np.array([(0, 1)] * (model.get_config()['latent_dim'] - len(concept_gaussians)))
+            gaussians = np.concatenate([concept_gaussians, unit_gaussians])
+        else:
+            # if model type is conditional, then gausians are just unit normal gaussians
+            gaussians =  np.array([(0, 1)] * (model.get_config()['latent_dim']))
 
         # stack gaussians, concept labels, and image num_samples times
         gaussians = np.stack([gaussians] * num_samples, axis=0)
@@ -116,9 +121,11 @@ encoder_prediction_labels = []
 decoder_prediction_labels = []
 truth_labels = []
 for i in range(num_images):
+    print("Classifying image " + str(i) + " of " + str(num_images), end='\r')
     truth_labels.append(encode_or_decode(data_it[i][1][0]))
     encoder_prediction_labels.append(classify_using_encoder(data_it[i][0][0], vae, num_samples=num_samples))
     decoder_prediction_labels.append(classify_using_decoder(data_it[i][0][0], vae, num_samples=num_samples))
+print('\n')
 encoder_prediction_labels = np.array(encoder_prediction_labels).T
 decoder_prediction_labels = np.array(decoder_prediction_labels).T
 truth_labels = np.array(truth_labels).T
