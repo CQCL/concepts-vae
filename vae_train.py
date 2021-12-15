@@ -1,5 +1,6 @@
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"]="-1"  
+os.environ["TF_GPU_THREAD_MODE"]="gpu_private"
 
 from datetime import datetime
 import tensorflow as tf
