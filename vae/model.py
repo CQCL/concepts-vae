@@ -8,7 +8,7 @@ import vae.encoding_dictionary as enc
 class Sampling(layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def call(self, inputs):
         z_mean = inputs[0]
         z_log_var = inputs[1]
@@ -34,14 +34,14 @@ class ConceptGaussians(layers.Layer):
                                       trainable=True)
         super(ConceptGaussians, self).build(input_shape)
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def call(self, labels, **kwargs):
         labels = tf.cast(labels, tf.int32)
         indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))
         means = tf.transpose(tf.gather_nd(self.mean, indices, batch_dims=1))
         log_vars = tf.transpose(tf.gather_nd(self.log_var, indices, batch_dims=1))
         return means, log_vars
-
+        
 
 class VAE(keras.Model):
     def __init__(self, params, **kwargs):
@@ -113,7 +113,7 @@ class VAE(keras.Model):
             self.kl_loss_tracker,
         ]
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def call(self, inputs):
         _, _, z = self.encoder(inputs)
         reconstruction = self.decoder([z, inputs[1]])
@@ -138,7 +138,7 @@ class VAE(keras.Model):
             "kl_loss": self.kl_loss_tracker.result(),
         }
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def compute_loss(self, images_and_labels):
         z_mean, z_log_var, z = self.encoder(images_and_labels)
         reconstruction_loss = self.compute_reconstruction_loss(images_and_labels, z)
@@ -146,7 +146,7 @@ class VAE(keras.Model):
         total_loss = reconstruction_loss + self.params['beta'] * kl_loss
         return total_loss, reconstruction_loss, kl_loss
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def compute_reconstruction_loss(self, images_and_labels, z):
         reconstruction = self.decoder([z, images_and_labels[1]])
         reconstruction_loss = tf.reduce_mean(tf.reduce_sum(
@@ -154,15 +154,15 @@ class VAE(keras.Model):
         ))
         return reconstruction_loss
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def kl_loss_normal(self, z_mean, z_log_var):
         return -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def kl_loss_general(self, mean_0, log_var_0, mean_1, log_var_1):
         return -0.5 * (1 + log_var_0 - log_var_1 - tf.square(mean_1-mean_0)/tf.exp(log_var_1) - tf.exp(log_var_0)/tf.exp(log_var_1))
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def kl_conceptual_fun(self, images_and_labels, z_mean, z_log_var):
         concept_mean, concept_log_var = self.concept_gaussians(images_and_labels[1])
         kl_loss = 0
@@ -176,7 +176,7 @@ class VAE(keras.Model):
         kl_loss = tf.reduce_mean(kl_loss)
         return kl_loss
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def kl_conditional_fun(self, images_and_labels, z_mean, z_log_var):
         kl_loss = self.kl_loss_normal(z_mean, z_log_var)
         kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
