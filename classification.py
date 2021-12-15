@@ -40,15 +40,14 @@ def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES,
         if model.get_config()['model_type'] == 'conceptual':
             concept_gaussians = np.array([concept_gaussians_dict[concept] for concept in concept_combination])
             # add unit normal gaussians to make the length of the gaussians equal to the number of latent dimensions
-            unit_gaussians = np.array([(0, 1)] * (model.get_config()['latent_dim'] - len(concept_gaussians)))
+            unit_gaussians = np.array([(0, 0)] * (model.get_config()['latent_dim'] - len(concept_gaussians)))
             gaussians = np.concatenate([concept_gaussians, unit_gaussians])
         else:
             # if model type is conditional, then gausians are just unit normal gaussians
-            gaussians =  np.array([(0, 1)] * (model.get_config()['latent_dim']))
+            gaussians =  np.array([(0, 0)] * (model.get_config()['latent_dim']))
 
         # stack gaussians, concept labels, and image num_samples times
-        gaussians = np.stack([gaussians] * num_samples, axis=0)
-        gaussians = gaussians.reshape((2, num_samples, model.get_config()['latent_dim']))
+        gaussians = np.stack([gaussians.T] * num_samples, axis=1)
         labels = np.stack([encode_or_decode(concept_combination)] * num_samples, axis=0)
         images = np.stack([image] * num_samples, axis=0)
 
