@@ -33,7 +33,7 @@ params = {
     'use_labels_in_encoder': True,
     'gaussians_mean_init': (-1., 1.),
     'gaussians_log_var_init': (0.7, 0.),
-    'if_regularize_unit_normal': False,
+    'unit_normal_regularization_factor': 0.1, # set to 0 if you don't want to regularize
     'beta': 1
 }
 
