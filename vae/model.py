@@ -175,8 +175,8 @@ class VAE(keras.Model):
         for i in range(z_mean.shape[1]):
             if i < len(enc.concept_domains):
                 kl_loss = kl_loss + self.kl_loss_general(z_mean[:,i], z_log_var[:,i], concept_mean[:,i], concept_log_var[:,i])
-                if self.params['if_regularize_unit_normal']:
-                    kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
+                kl_loss = kl_loss + self.params['unit_normal_regularization_factor'] * \
+                                    self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
             else:
                 kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
         kl_loss = tf.reduce_mean(kl_loss)
