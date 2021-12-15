@@ -19,11 +19,16 @@ class Sampling(layers.Layer):
 
 
 class ConceptGaussians(layers.Layer):
+    def __init__(self, mean_init=(-1., 1.), log_var_init=(0.7, 0.0), **kwargs):
+        super(ConceptGaussians, self).__init__(**kwargs)
+        self.mean_init = mean_init
+        self.log_var_init = log_var_init
+
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains])
-        mean_initializer = keras.initializers.RandomUniform(minval=-1., maxval=1.)
-        log_var_initializer = keras.initializers.RandomUniform(minval=-3., maxval=0.)
+        mean_initializer = keras.initializers.RandomUniform(minval=self.mean_init[0], maxval=self.mean_init[1])
+        log_var_initializer = keras.initializers.RandomUniform(minval=self.log_var_init[0], maxval=self.log_var_init[1])
         self.mean = self.add_weight(name='kernel',
                                       shape=(len(enc.concept_domains), max_concepts),
                                       initializer=mean_initializer,
@@ -55,7 +60,8 @@ class VAE(keras.Model):
         self.reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
         if  self.params['model_type'] == 'conceptual':
             self.kl_loss_function = self.kl_conceptual_fun
-            self.concept_gaussians = ConceptGaussians()
+            self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'], 
+                                                      self.params['gaussians_log_var_init'])
         elif self.params['model_type'] == 'conditional':
             self.kl_loss_function = self.kl_conditional_fun
         self.kl_loss_tracker = keras.metrics.Mean(name="kl_loss")

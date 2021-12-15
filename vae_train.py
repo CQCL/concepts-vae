@@ -31,6 +31,8 @@ params = {
     'model_type': 'conceptual',
     # 'model_type': 'conditional',
     'use_labels_in_encoder': True,
+    'gaussians_mean_init': (-1., 1.),
+    'gaussians_log_var_init': (0.7, 0.),
     'if_regularize_unit_normal': False,
     'beta': 1
 }
