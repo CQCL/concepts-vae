@@ -36,19 +36,10 @@ class ConceptGaussians(layers.Layer):
 
     @tf.function
     def call(self, labels, **kwargs):
-        def get_means(label):
-            required_means = tf.linalg.diag_part(
-                                tf.experimental.numpy.take(self.mean, tf.cast(label, tf.int32), axis=1))
-            return required_means
-
-        def get_vars(label):
-            required_log_vars = tf.linalg.diag_part(
-                                    tf.experimental.numpy.take(self.log_var, tf.cast(label, tf.int32), axis=1))
-            return required_log_vars
-
-        means = tf.map_fn(get_means, labels)
-        log_vars = tf.map_fn(get_vars, labels)
-        
+        labels = tf.cast(labels, tf.int32)
+        indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))
+        means = tf.transpose(tf.gather_nd(self.mean, indices, batch_dims=1))
+        log_vars = tf.transpose(tf.gather_nd(self.log_var, indices, batch_dims=1))
         return means, log_vars
 
 
