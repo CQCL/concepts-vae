@@ -120,8 +120,7 @@ class VAE(keras.Model):
         return reconstruction
 
     @tf.function
-    def train_step(self, data):
-        images_and_labels = data[0]
+    def train_step(self, images_and_labels):
         with tf.GradientTape() as tape:
             total_loss, reconstruction_loss, kl_loss = self.compute_loss(images_and_labels)
         grads = tape.gradient(total_loss, self.trainable_weights)

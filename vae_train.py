@@ -11,33 +11,27 @@ sess = tf.compat.v1.Session(config=config)
 from tensorflow import keras
 
 from vae.model import VAE
-from vae.data_generator import ImageGenerator
+from vae.data_generator import get_tf_dataset
+from vae import encoding_dictionary as enc
 
 
 IMAGE_DIR='images/basic/'
-BATCH_SIZE=16
+BATCH_SIZE=32
 NUM_EPOCHS=200
 
-
-data_it = ImageGenerator(IMAGE_DIR, BATCH_SIZE)
-
-img_width = data_it[0][0].shape[1]
-img_height = data_it[0][0].shape[2]
-num_channels = 3  #3 for rgb
-image_input_shape = (img_height, img_width, num_channels)
-
+dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
 
 params = {
     'num_strides': 2,
     'kernel_size': 4,
     'latent_dim': 6,
     'pool_size': (2,2),
-    'num_channels': num_channels,
-    'input_shape': [image_input_shape, (4,)],
+    'num_channels': image_input_shape[2],
+    'input_shape': [image_input_shape, (len(enc.concept_domains),)],
     'model_type': 'conceptual',
     # 'model_type': 'conditional',
     'use_labels_in_encoder': True,
-    'if_regularize_unit_normal': True,
+    'if_regularize_unit_normal': False,
     'beta': 1
 }
 
@@ -45,13 +39,23 @@ vae = VAE(params)
 # vae.compile(optimizer=keras.optimizers.Adam(), run_eagerly=True)
 vae.compile(optimizer=keras.optimizers.Adam())
 
-tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=0, write_graph=True, write_images=True, update_freq='batch' )
-imgCallback = ImageSaveCallback(data_it[0], 'images/training/')
+# call the model to build it
+sample_input = list(dataset_tf.take(1).as_numpy_iterator())[0]
+vae.predict(sample_input)
+
+tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', 
+                                         histogram_freq=0,
+                                         write_graph=True,
+                                         write_images=True,
+                                         update_freq='batch',
+                                        #  profile_batch=(600,650)
+                                         )
+imgCallback = ImageSaveCallback(sample_input[0][0], 'images/training/')
 gaussCallback = GaussianPlotCallback('images/training/')
 # add/remove callbacks if you want
-callbacks = [tbCallBack, gaussCallback]
+callbacks = [tbCallBack]
 
-vae.fit(data_it, epochs=NUM_EPOCHS, steps_per_epoch=len(data_it), callbacks=callbacks)
+vae.fit(dataset_tf, epochs=NUM_EPOCHS, callbacks=callbacks)
 
 if gaussCallback in callbacks:
     gaussCallback.save_video_from_images('gaus_vid')
