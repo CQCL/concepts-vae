@@ -2,46 +2,55 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+
 import vae.encoding_dictionary as enc
 
 
 class Sampling(layers.Layer):
-    """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
+    """
+    Uses [z_mean, z_log_var] to sample z, the vector encoding a digit.
+    """
 
     @tf.function(jit_compile=True)
     def call(self, inputs):
+        """
+        inputs: has the shape [z_mean, z_log_var], where each of those is a tensor (as everything in tensorflow)
+        """
         z_mean = inputs[0]
         z_log_var = inputs[1]
-        batch = tf.shape(z_mean)[0]
-        dim = tf.shape(z_mean)[1]
-        epsilon = keras.backend.random_normal(shape=(batch, dim))
-        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+        batch = tf.shape(z_mean)[0]     # why do we need to do this?  Isn't there a helper function for this in keras/tf?
+        dim = tf.shape(z_mean)[1]     # why do we need to do this?  Isn't there a helper function for this in keras/tf?
+        epsilon = keras.backend.random_normal(shape=(batch, dim))   # what is epsilon?
+        return z_mean + tf.exp(0.5 * z_log_var) * epsilon   # 0.5 because of square root??
 
 
 class ConceptGaussians(layers.Layer):
     def __init__(self, mean_init=(-1., 1.), log_var_init=(0.7, 0.0), **kwargs):
-        super(ConceptGaussians, self).__init__(**kwargs)
+        super(ConceptGaussians, self).__init__(**kwargs)    # is this for some inheritance reasons?
         self.mean_init = mean_init
         self.log_var_init = log_var_init
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
-        max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains])
-        mean_initializer = keras.initializers.RandomUniform(minval=self.mean_init[0], maxval=self.mean_init[1])
-        log_var_initializer = keras.initializers.RandomUniform(minval=self.log_var_init[0], maxval=self.log_var_init[1])
+        max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains])     # the max number of different values for different domains
+        mean_initializer = keras.initializers.RandomUniform(minval=self.mean_init[0], maxval=self.mean_init[1]) # now that we have the range for initialiser elsewhere, should we just add this to the code below and add a comment that this is the initialiser?
+        log_var_initializer = keras.initializers.RandomUniform(minval=self.log_var_init[0], maxval=self.log_var_init[1])    # -||-
         self.mean = self.add_weight(name='kernel',
                                       shape=(len(enc.concept_domains), max_concepts),
-                                      initializer=mean_initializer,
+                                      initializer=mean_initializer, # remove the variable mean_initializer??
                                       trainable=True)
         self.log_var = self.add_weight(name='kernel',
                                       shape=(len(enc.concept_domains), max_concepts),
-                                      initializer=log_var_initializer,
+                                      initializer=log_var_initializer,  # remove the variable log_var_initializer??
                                       trainable=True)
-        super(ConceptGaussians, self).build(input_shape)
+        super(ConceptGaussians, self).build(input_shape)    # inheriting the rest of build from ?? layer??
 
     @tf.function(jit_compile=True)
     def call(self, labels, **kwargs):
-        labels = tf.cast(labels, tf.int32)
+        # I forgot, what is the difference between build and call?
+        # what "type" is the input (labels)? array or list? seen as we have to cast it...
+        labels = tf.cast(labels, tf.int32)  # casting list into array? Or is that just extension to int32?
+        # do we want to explain this next mathemagic below? 
         indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))
         means = tf.transpose(tf.gather_nd(self.mean, indices, batch_dims=1))
         log_vars = tf.transpose(tf.gather_nd(self.log_var, indices, batch_dims=1))
@@ -68,8 +77,14 @@ class VAE(keras.Model):
         self.mse = tf.keras.losses.MeanSquaredError(reduction='none')
     
     def get_config(self):
+        # returns parameters with which vae was instanciated
         return self.params
 
+    # is there any way to make encoder and decoder as separate classes to make this slightly more elegant? 
+    # or make cnn as a class (like vae), and decnn as a separate class?
+    # then we would just need to create those instances here :)
+    # one step further: is there a way to make conditional and conceptual VAE inherit from "vanilla" VAE 
+    #   --> i.e., should we have a general VAE skeleton that we can then turn into either (or simply into a pure vanilla) based on how we define KL in those inherited classes?
     def encoder_model(self):
         encoder_image_inputs = keras.Input(shape=self.params['input_shape'][0])
         encoder_label_inputs = keras.Input(shape=self.params['input_shape'][1])
