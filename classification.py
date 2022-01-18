@@ -107,6 +107,31 @@ def encoder_classifier(image, model, concept_names=CONCEPT_NAMES,
     else:
         return list(total_losses[0][0])
 
+
+def encoder_mean_distance_classifier(image, model, concept_names=CONCEPT_NAMES, save_images=False):
+    if save_images:
+        save_image('images/classify/', 'image_to_classify', [image])
+
+    if model.get_config()['use_labels_in_encoder']:
+        raise ValueError('Encoder mean distance classifier is not compatible with models that input labels in the encoder')
+    
+    num_concept_domains = len(concept_names)
+    empty_labels = tf.zeros((1, num_concept_domains))  # create empty labels because encoder input type still requires labels
+    images = np.array([image], dtype=np.float32)
+    z_mean, _, _ = model.encoder((images, empty_labels))
+    z_mean = z_mean.numpy()[0]
+
+    # for each concept domain, get the concept with mean closest to z_mean
+    result = []
+    for i, concepts in enumerate(concept_names):
+        encoding_dict = enc.enc_dict[enc.concept_domains[i]]
+        concepts_enc = np.array([encoding_dict[concept] for concept in concepts])
+        concept_means = model.concept_gaussians.mean.numpy()[i][concepts_enc]
+        distances = [np.abs(concept_mean - z_mean[i]) for concept_mean in concept_means]
+        result.append(concepts[np.argmin(distances)])
+    return result
+    
+
 def print_results(result, title, concept_names=CONCEPT_NAMES):
     print('\n' + title + '\n')
     for i in range(len(concept_names)):
@@ -118,32 +143,41 @@ num_samples = 50 # number of samples to use for classification
 num_images = 200 # number of images to classify
 encoder_prediction_labels = []
 decoder_prediction_labels = []
+mean_distance_prediction_labels = []
 truth_labels = []
 for i in range(num_images):
     print("Classifying image " + str(i) + " of " + str(num_images), end='\r')
     truth_labels.append(encode_or_decode(data_it[i][1][0]))
     encoder_prediction_labels.append(encoder_classifier(data_it[i][0][0], vae, num_samples=num_samples))
     decoder_prediction_labels.append(decoder_classifier(data_it[i][0][0], vae, num_samples=num_samples))
+    mean_distance_prediction_labels.append(encoder_mean_distance_classifier(data_it[i][0][0], vae))
 print('\n')
 encoder_prediction_labels = np.array(encoder_prediction_labels).T
 decoder_prediction_labels = np.array(decoder_prediction_labels).T
+mean_distance_prediction_labels = np.array(mean_distance_prediction_labels).T
 truth_labels = np.array(truth_labels).T
 
 # create classification report for each concept domain
 encoder_classification_reports = []
 decoder_classification_reports = []
+mean_distance_classification_reports = []
 for i in range(len(CONCEPT_NAMES)):
     encoder_classification_reports.append(classification_report(truth_labels[i], encoder_prediction_labels[i]))
     decoder_classification_reports.append(classification_report(truth_labels[i], decoder_prediction_labels[i]))
+    mean_distance_classification_reports.append(classification_report(truth_labels[i], mean_distance_prediction_labels[i]))
 
 # create confusion matrix
 encoder_confusion_matrix = []
 decoder_confusion_matrix = []
+mean_distance_confusion_matrix = []
 for i in range(len(CONCEPT_NAMES)):
     encoder_confusion_matrix.append(confusion_matrix(truth_labels[i], encoder_prediction_labels[i], labels=CONCEPT_NAMES[i]))
     decoder_confusion_matrix.append(confusion_matrix(truth_labels[i], decoder_prediction_labels[i], labels=CONCEPT_NAMES[i]))
+    mean_distance_confusion_matrix.append(confusion_matrix(truth_labels[i], mean_distance_prediction_labels[i], labels=CONCEPT_NAMES[i]))
 
 print_results(encoder_classification_reports, 'Encoder Classification Report')
 print_results(decoder_classification_reports, 'Decoder Classification Report')
+print_results(mean_distance_classification_reports, 'Mean Distance Classification Report')
 print_results(encoder_confusion_matrix, 'Encoder Confusion Matrix')
 print_results(decoder_confusion_matrix, 'Decoder Confusion Matrix')
+print_results(mean_distance_confusion_matrix, 'Mean Distance Confusion Matrix')
