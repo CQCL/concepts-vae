@@ -24,7 +24,7 @@ CONCEPT_NAMES = [['blue', 'red', 'green'],
 
 
 # classification using decoder
-def classify_using_decoder(image, model, concept_names=CONCEPT_NAMES, 
+def decoder_classifier(image, model, concept_names=CONCEPT_NAMES, 
                            num_samples=10, save_images=False, return_prediction_list=False):
     if save_images:
         save_image('images/classify/', 'image_to_classify', [image])
@@ -79,7 +79,7 @@ def create_dict(keys, *values):
     return dictionary
 
 
-def classify_using_encoder(image, model, concept_names=CONCEPT_NAMES, 
+def encoder_classifier(image, model, concept_names=CONCEPT_NAMES, 
                            num_samples=10, save_images=False, return_prediction_list=False):
     if save_images:
         save_image('images/classify/', 'image_to_classify', [image])
@@ -122,8 +122,8 @@ truth_labels = []
 for i in range(num_images):
     print("Classifying image " + str(i) + " of " + str(num_images), end='\r')
     truth_labels.append(encode_or_decode(data_it[i][1][0]))
-    encoder_prediction_labels.append(classify_using_encoder(data_it[i][0][0], vae, num_samples=num_samples))
-    decoder_prediction_labels.append(classify_using_decoder(data_it[i][0][0], vae, num_samples=num_samples))
+    encoder_prediction_labels.append(encoder_classifier(data_it[i][0][0], vae, num_samples=num_samples))
+    decoder_prediction_labels.append(decoder_classifier(data_it[i][0][0], vae, num_samples=num_samples))
 print('\n')
 encoder_prediction_labels = np.array(encoder_prediction_labels).T
 decoder_prediction_labels = np.array(decoder_prediction_labels).T
