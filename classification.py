@@ -1,17 +1,20 @@
 import itertools
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import confusion_matrix, classification_report
-from vae import encoding_dictionary as enc
-
-from vae.model import Sampling
-config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
-sess = tf.compat.v1.Session(config=config)
 from tensorflow import keras
+from sklearn.metrics import classification_report, confusion_matrix
+
+from vae import encoding_dictionary as enc
+from vae.model import Sampling
 
 from vae.data_generator import ImageGenerator
 from vae.utils import encode_or_decode, get_concept_gaussians, save_image
+
+# configuring tensorflow
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.compat.v1.Session(config=config)
+
 
 vae = keras.models.load_model('saved_models/vae_weights_December_14_11:29')
 data_it = ImageGenerator('images/basic', batch_size=1)
