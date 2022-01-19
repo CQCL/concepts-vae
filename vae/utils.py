@@ -1,11 +1,13 @@
-from datetime import datetime
 import itertools
 import os
+import random
+from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
-import random
 import tensorflow as tf
+
 import vae.encoding_dictionary as enc
 from vae.model import Sampling
 

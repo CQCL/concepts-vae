@@ -1,13 +1,14 @@
 from itertools import product
-import numpy as np
 import tensorflow as tf
+from tensorflow import keras
+
+from vae import utils
+from vae.data_generator import ImageGenerator
+
+# configuring tensorflow
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
-from tensorflow import keras
-
-from vae.data_generator import ImageGenerator
-from vae import utils
 
 
 vae = keras.models.load_model('saved_models/vae_weights_October_26_19:26')
