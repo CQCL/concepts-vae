@@ -1,9 +1,25 @@
 import numpy as np
 import tensorflow as tf
+from abc import ABC, abstractmethod, abstractproperty
 from tensorflow import keras
 from tensorflow.keras import layers
 
 import vae.encoding_dictionary as enc
+
+
+class AbstractVAE(ABC):
+    """Abstract class from which all VAEs should inherit."""
+
+    def example(self, input1):
+        """Description."""
+
+    @abstractmethod
+    def ex_abstract_method(self, input1):
+        """Description."""
+
+    @abstractproperty
+    def ex_abstract_property(self):
+        """Description."""
 
 
 class Sampling(layers.Layer):
