@@ -8,7 +8,7 @@ import vae.encoding_dictionary as enc
 
 class Sampling(layers.Layer):
     """
-    Uses [z_mean, z_log_var] to sample z, the vector encoding a digit.
+    Uses [z_mean, z_log_var] to sample z, the vector encoding an image.
     """
 
     @tf.function(jit_compile=True)
@@ -18,40 +18,44 @@ class Sampling(layers.Layer):
         """
         z_mean = inputs[0]
         z_log_var = inputs[1]
-        batch = tf.shape(z_mean)[0]     # why do we need to do this?  Isn't there a helper function for this in keras/tf?
-        dim = tf.shape(z_mean)[1]     # why do we need to do this?  Isn't there a helper function for this in keras/tf?
-        epsilon = keras.backend.random_normal(shape=(batch, dim))   # what is epsilon?
-        return z_mean + tf.exp(0.5 * z_log_var) * epsilon   # 0.5 because of square root??
+        batch = tf.shape(z_mean)[0]     # number of elements in a batch
+        dim = tf.shape(z_mean)[1]     # number of latent dimensions
+        epsilon = keras.backend.random_normal(shape=(batch, dim))   # sampling from unit normal
+        return z_mean + tf.exp(0.5 * z_log_var) * epsilon   # scale the sample (epsilon) from unit normal to actual mean and log_var
 
 
 class ConceptGaussians(layers.Layer):
     def __init__(self, mean_init=(-1., 1.), log_var_init=(0.7, 0.0), **kwargs):
-        super(ConceptGaussians, self).__init__(**kwargs)    # is this for some inheritance reasons?
+        super(ConceptGaussians, self).__init__(**kwargs)
         self.mean_init = mean_init
         self.log_var_init = log_var_init
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
-        max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains])     # the max number of different values for different domains
-        mean_initializer = keras.initializers.RandomUniform(minval=self.mean_init[0], maxval=self.mean_init[1]) # now that we have the range for initialiser elsewhere, should we just add this to the code below and add a comment that this is the initialiser?
-        log_var_initializer = keras.initializers.RandomUniform(minval=self.log_var_init[0], maxval=self.log_var_init[1])    # -||-
+        # the max number of different values for different domains
+        max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains]) 
         self.mean = self.add_weight(name='kernel',
                                       shape=(len(enc.concept_domains), max_concepts),
-                                      initializer=mean_initializer, # remove the variable mean_initializer??
+                                      initializer=keras.initializers.RandomUniform(minval=self.mean_init[0], 
+                                                                                   maxval=self.mean_init[1]),
                                       trainable=True)
         self.log_var = self.add_weight(name='kernel',
                                       shape=(len(enc.concept_domains), max_concepts),
-                                      initializer=log_var_initializer,  # remove the variable log_var_initializer??
+                                      initializer=keras.initializers.RandomUniform(minval=self.log_var_init[0], 
+                                                                                   maxval=self.log_var_init[1]),
                                       trainable=True)
-        super(ConceptGaussians, self).build(input_shape)    # inheriting the rest of build from ?? layer??
+        super(ConceptGaussians, self).build(input_shape)
 
-    @tf.function(jit_compile=True)
+    @tf.function(jit_compile=True)  # for faster training, just in time compilation 
     def call(self, labels, **kwargs):
-        # I forgot, what is the difference between build and call?
-        # what "type" is the input (labels)? array or list? seen as we have to cast it...
-        labels = tf.cast(labels, tf.int32)  # casting list into array? Or is that just extension to int32?
-        # do we want to explain this next mathemagic below? 
-        indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))
+        """
+        labels: list of labels corresponding to an image?
+        """
+        labels = tf.cast(labels, tf.int32)  # casting from float to int
+        # gather_nd gathers slices from self.mean into a Tensor with shape specified by indices  
+        # (i.e., the needed indices corresponding to current concepts based on labels)
+        # (cf., https://www.tensorflow.org/api_docs/python/tf/gather_nd)
+        indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))    
         means = tf.transpose(tf.gather_nd(self.mean, indices, batch_dims=1))
         log_vars = tf.transpose(tf.gather_nd(self.log_var, indices, batch_dims=1))
         return means, log_vars
@@ -80,16 +84,10 @@ class VAE(keras.Model):
         # returns parameters with which vae was instanciated
         return self.params
 
-    # is there any way to make encoder and decoder as separate classes to make this slightly more elegant? 
-    # or make cnn as a class (like vae), and decnn as a separate class?
-    # then we would just need to create those instances here :)
-    # one step further: is there a way to make conditional and conceptual VAE inherit from "vanilla" VAE 
-    #   --> i.e., should we have a general VAE skeleton that we can then turn into either (or simply into a pure vanilla) based on how we define KL in those inherited classes?
     def encoder_model(self):
         encoder_image_inputs = keras.Input(shape=self.params['input_shape'][0])
         encoder_label_inputs = keras.Input(shape=self.params['input_shape'][1])
         x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(encoder_image_inputs)
-        # x = layers.MaxPooling2D(pool_size=self.params['pool_size'])(x)
         x = layers.Dropout(self.params['convolutional_dropout'])(x)
         x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
         x = layers.Dropout(self.params['convolutional_dropout'])(x)
@@ -97,8 +95,7 @@ class VAE(keras.Model):
         x = layers.Dropout(self.params['convolutional_dropout'])(x)
         x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
         x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        # x = layers.MaxPooling2D(pool_size=self.params['pool_size'])(x)
-        conv_shape = tf.keras.backend.int_shape(x) #Shape of conv to be provided to decoder
+        conv_shape = tf.keras.backend.int_shape(x) # Shape of convonlutional layer to be provided to decoder
         x = layers.Flatten()(x)
         if self.params['model_type'] == 'conceptual' and self.params['use_labels_in_encoder']:
             x = layers.Concatenate()([encoder_label_inputs, x])
@@ -132,9 +129,6 @@ class VAE(keras.Model):
         x = layers.Dropout(self.params['convolutional_dropout'])(x)
         x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
         x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        # x = layers.UpSampling2D(size=self.params['pool_size'])(x)
-        # x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        # x = layers.UpSampling2D(size=self.params['pool_size'])(x)
         decoder_outputs = layers.Conv2DTranspose(self.params['num_channels'], self.params['kernel_size'], activation="relu", padding="same")(x)
         decoder = keras.Model([latent_inputs, label_inputs], decoder_outputs, name="decoder")
         return decoder
