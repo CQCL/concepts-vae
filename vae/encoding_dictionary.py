@@ -5,7 +5,6 @@ enc_dict = {
         'blue': 0,
         'green': 1,
         'red': 2,
-        'yellow': 3,
     },
 
     'size' : {
@@ -17,16 +16,7 @@ enc_dict = {
     'shape' : {
         'triangle': 0,
         'square': 1,
-        'pentagon': 2,
-        'hexagon': 3,
-        'octagon': 4,
-        'circle': 5,
-        'star_4': 6,
-        'star_5': 7,
-        'star_6': 8,
-        'spoke_4': 9,
-        'spoke_5': 10,
-        'spoke_6': 11,
+        'circle': 2,
     },
 
     'position' : {
@@ -41,7 +31,6 @@ dec_dict = {
         0 : 'blue',
         1 : 'green',
         2 : 'red',
-        3 : 'yellow',
     },
 
     'size' : {
@@ -53,16 +42,7 @@ dec_dict = {
     'shape' : {
         0 : 'triangle',
         1 : 'square',
-        2 : 'pentagon',
-        3 : 'hexagon',
-        4 : 'octagon',
-        5 : 'circle',
-        6 : 'star_4',
-        7 : 'star_5',
-        8 : 'star_6',
-        9 : 'spoke_4',
-        10 : 'spoke_5',
-        11 : 'spoke_6',
+        2 : 'circle',
     },
 
     'position' : {
