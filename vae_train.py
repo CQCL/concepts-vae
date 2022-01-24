@@ -18,12 +18,23 @@ config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
 
 
-IMAGE_DIR='images/basic/'   # location of dataset images
+IMAGE_DIR='images/any_one/'   # location of dataset images
 BATCH_SIZE=32
 NUM_EPOCHS=200
 
 # prepare dataset
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
+
+valid_concepts = {
+    'colour' : ['blue', 'green', 'red'],
+    'size' : ['small', 'medium', 'large'],
+    'shape' : ['triangle', 'square', 'circle'],
+    'position' : ['top', 'centre', 'bottom'],
+}
+# encode the values of the concepts using encoding dictionary
+valid_concepts_encoded = {}
+for domain, concepts in valid_concepts.items():
+    valid_concepts_encoded[domain] = [enc.enc_dict[domain][concept] for concept in concepts]
 
 params = {
     'model_type': 'conceptual', # choose either 'conceptual' or 'conditional'
@@ -41,11 +52,16 @@ params = {
     'convolutional_dropout': 0.1, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for convolutional layers
 
     # extra parameters for conceptual VAE
-    'use_labels_in_encoder': True,  # whether we are passing labels in encoder
+    'use_labels_in_encoder': False,  # whether we are passing labels in encoder
     'gaussians_mean_init': (-1., 1.),   # initialisation interval for means of Gaussians
     'gaussians_log_var_init': (0.7, 0.),    # initialisation interval for log var of Gaussians
     'unit_normal_regularization_factor': 0, # regularisation factor for concept Gaussians; set to 0 if you don't want to regularize Gaussians
+    
+    # extra parameters for ANY label of conceptual VAE
+    'valid_concepts': valid_concepts_encoded,  # dictionary of valid concepts for each domain
+    'num_samples_for_any_kl': 10000,  # number of samples for calculating KL divergence for ANY label
 }
+
 
 vae = VAE(params)   # builds (initialises?) vae with above parameters
 # vae.compile(optimizer=keras.optimizers.Adam(), run_eagerly=True)  # to run step-by-step

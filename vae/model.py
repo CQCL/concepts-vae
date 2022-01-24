@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow_probability import distributions as tfd
 
 import vae.encoding_dictionary as enc
 
@@ -166,7 +167,7 @@ class VAE(keras.Model):
             "kl_loss": self.kl_loss_tracker.result(),
         }
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def compute_loss(self, images_and_labels):
         z_mean, z_log_var, z = self.encoder(images_and_labels)
         reconstruction_loss = self.compute_reconstruction_loss(images_and_labels, z)
@@ -191,12 +192,48 @@ class VAE(keras.Model):
         return -0.5 * (1 + log_var_0 - log_var_1 - tf.square(mean_1-mean_0)/tf.exp(log_var_1) - tf.exp(log_var_0)/tf.exp(log_var_1))
 
     @tf.function(jit_compile=True)
+    def kl_loss_for_any(self, means, log_vars, domain):
+        stdevs = tf.sqrt(tf.exp(log_vars))
+        encoder_gaussians = tfd.Normal(means, stdevs)
+        any_indices = self.params['valid_concepts'][enc.concept_domains[domain]]
+        any_means = tf.gather(self.concept_gaussians.mean[domain], any_indices)
+        any_log_vars = tf.gather(self.concept_gaussians.log_var[domain], any_indices)
+        any_stdevs = tf.sqrt(tf.exp(any_log_vars))
+        any_gaussians = tfd.Normal(any_means, any_stdevs)
+        z_i = encoder_gaussians.sample(self.params['num_samples_for_any_kl'])
+        # for each element of ANY concept, get the probability value at sample z_i
+        # then, take the mean of those probabilities
+        any_prob = tf.reduce_mean([any_gaussians[j].prob(z_i) 
+                                        for j in range(len(any_indices))], axis=0)
+        any_log_prob = tf.math.log(any_prob)
+        # calculate KL:  KL(q(z|X), p(z|ANY)) = 1\N \sum_i (log q(z_i|X) - log p(z_i|ANY))
+        kl_loss = tf.reduce_mean(encoder_gaussians.log_prob(z_i) - any_log_prob, axis=0)
+        return kl_loss
+
+    @tf.function
     def kl_conceptual_fun(self, images_and_labels, z_mean, z_log_var):
-        concept_mean, concept_log_var = self.concept_gaussians(images_and_labels[1])
-        kl_loss = 0
+        labels = images_and_labels[1]
+        concept_mean, concept_log_var = self.concept_gaussians(labels)
+        # create empty kl_loss of shape (batch_size,)
+        kl_loss = tf.zeros(tf.shape(labels)[0])
+        # for each domain, compute kl_loss
         for i in range(z_mean.shape[1]):
             if i < len(enc.concept_domains):
-                kl_loss = kl_loss + self.kl_loss_general(z_mean[:,i], z_log_var[:,i], concept_mean[:,i], concept_log_var[:,i])
+                # seperarte indices for 'any' vs other labels in the concept domain
+                indices_with_any = tf.cast(tf.where(labels[:,i] == -1), tf.int32)   # 'any' label is represented as -1 
+                indices_without_any = tf.cast(tf.where(labels[:,i] >= 0), tf.int32)  # other labels are represented as non-negative integers
+                # compute the kl loss
+                kl_loss_without_any = self.kl_loss_general(tf.gather_nd(z_mean, indices_without_any)[:,i],
+                                                           tf.gather_nd(z_log_var, indices_without_any)[:,i], 
+                                                           tf.gather_nd(concept_mean, indices_without_any)[:,i],
+                                                           tf.gather_nd(concept_log_var, indices_without_any)[:,i])
+                kl_loss_with_any = self.kl_loss_for_any(tf.gather_nd(z_mean, indices_with_any)[:,i],
+                                                        tf.gather_nd(z_log_var, indices_with_any)[:,i],
+                                                        i)
+                # add the Kl loss at the appropriate indices
+                kl_loss += tf.scatter_nd(indices_without_any, kl_loss_without_any, tf.shape(kl_loss))
+                kl_loss += tf.scatter_nd(indices_with_any, kl_loss_with_any, tf.shape(kl_loss))
+                # unit normal regularization
                 kl_loss = kl_loss + self.params['unit_normal_regularization_factor'] * \
                                     self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
             else:
