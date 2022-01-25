@@ -199,15 +199,15 @@ class VAE(keras.Model):
         any_means = tf.gather(self.concept_gaussians.mean[domain], any_indices)
         any_log_vars = tf.gather(self.concept_gaussians.log_var[domain], any_indices)
         any_stdevs = tf.sqrt(tf.exp(any_log_vars))
-        any_gaussians = tfd.Normal(any_means, any_stdevs)
+        # create a mixture of gaussians for the any concept
+        any_gaussians = tfd.Mixture(
+            cat=tfd.Categorical(probs=tf.ones(len(any_indices))/len(any_indices)),   # uniform probability for each gaussian
+            components=[ tfd.Normal(loc=any_means[i], scale=any_stdevs[i])
+                                for i in range(len(any_indices))]
+        )
         z_i = encoder_gaussians.sample(self.params['num_samples_for_any_kl'])
-        # for each element of ANY concept, get the probability value at sample z_i
-        # then, take the mean of those probabilities
-        any_prob = tf.reduce_mean([any_gaussians[j].prob(z_i) 
-                                        for j in range(len(any_indices))], axis=0)
-        any_log_prob = tf.math.log(any_prob)
         # calculate KL:  KL(q(z|X), p(z|ANY)) = 1\N \sum_i (log q(z_i|X) - log p(z_i|ANY))
-        kl_loss = tf.reduce_mean(encoder_gaussians.log_prob(z_i) - any_log_prob, axis=0)
+        kl_loss = tf.reduce_mean(encoder_gaussians.log_prob(z_i) - any_gaussians.log_prob(z_i), axis=0)
         return kl_loss
 
     @tf.function

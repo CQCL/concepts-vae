@@ -54,7 +54,7 @@ params = {
     # extra parameters for conceptual VAE
     'use_labels_in_encoder': False,  # whether we are passing labels in encoder
     'gaussians_mean_init': (-1., 1.),   # initialisation interval for means of Gaussians
-    'gaussians_log_var_init': (0.7, 0.),    # initialisation interval for log var of Gaussians
+    'gaussians_log_var_init': (-7, 0.),    # initialisation interval for log var of Gaussians
     'unit_normal_regularization_factor': 0, # regularisation factor for concept Gaussians; set to 0 if you don't want to regularize Gaussians
     
     # extra parameters for ANY label of conceptual VAE
