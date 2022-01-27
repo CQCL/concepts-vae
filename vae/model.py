@@ -286,8 +286,13 @@ class VAE(keras.Model):
                                         for i in range(len(enc.concept_domains))]
                 )
                 z_i = encoder_gaussians[:,i].sample(self.params['num_samples_for_kl_monte_carlo'])
-                kl_loss = tf.reduce_mean(encoder_gaussians[:,i].log_prob(z_i) - \
-                     gaussian_mixture.log_prob(z_i), axis=0)
+                encoder_log_prob = encoder_gaussians[:,i].log_prob(z_i)
+                encoder_log_prob = tf.where(tf.math.is_inf(encoder_log_prob), tf.zeros_like(encoder_log_prob), encoder_log_prob)
+                encoder_log_prob = tf.where(tf.math.is_nan(encoder_log_prob), tf.zeros_like(encoder_log_prob), encoder_log_prob)
+                mixture_log_prob = gaussian_mixture.log_prob(z_i)
+                mixture_log_prob = tf.where(tf.math.is_inf(mixture_log_prob), tf.zeros_like(mixture_log_prob), mixture_log_prob)
+                mixture_log_prob = tf.where(tf.math.is_nan(mixture_log_prob), tf.zeros_like(mixture_log_prob), mixture_log_prob)
+                kl_loss = tf.reduce_mean(encoder_log_prob - mixture_log_prob, axis=0)
                 # unit normal regularization
                 kl_loss = kl_loss + self.params['unit_normal_regularization_factor'] * \
                                     self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
