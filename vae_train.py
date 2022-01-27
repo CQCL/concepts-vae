@@ -1,5 +1,9 @@
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"]="-1"   # if we do NOT want to use GPU (hides the GPU)
+
+# set to "0" or "1", to use GPU0 or GPU1; set to "-1" to use CPU
+# it is better to make only one GPU visible because tensorflow
+# allocates memory on both GPUs even if you only use one of them
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 os.environ["TF_GPU_THREAD_MODE"]="gpu_private"  # when using GPU; allocates a separate thread on GPU for optimised performance
 
 from datetime import datetime  # for adding date and time stamps to names
