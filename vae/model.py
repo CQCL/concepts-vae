@@ -129,9 +129,7 @@ class VAE(keras.Model):
         x = layers.Dense(256, activation="relu")(x)
         x = layers.Dropout(self.params['dense_dropout'])(x)
         z_mean = layers.Dense(self.params['latent_dim'], name="z_mean")(x)
-        z_mean = layers.Dropout(self.params['dense_dropout'])(z_mean)
         z_log_var = layers.Dense(self.params['latent_dim'], name="z_log_var")(x)
-        z_log_var = layers.Dropout(self.params['dense_dropout'])(z_log_var)
         z = Sampling()([z_mean, z_log_var])
         encoder = keras.Model([encoder_image_inputs, encoder_label_inputs], [z_mean, z_log_var, z], name="encoder")
         return encoder, conv_shape
