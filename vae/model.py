@@ -7,6 +7,8 @@ from tensorflow_probability import distributions as tfd
 import vae.encoding_dictionary as enc
 
 
+# TODO: replace tf.gather with tf.dynamic_partition for better memory efficiency
+
 class Sampling(layers.Layer):
     """
     Uses [z_mean, z_log_var] to sample z, the vector encoding an image.
@@ -26,29 +28,43 @@ class Sampling(layers.Layer):
 
 
 class ConceptGaussians(layers.Layer):
-    def __init__(self, mean_init=(-1., 1.), log_var_init=(0.7, 0.0), **kwargs):
+    def __init__(self, mean_init=(-1., 1.), log_var_init=(0.7, 0.0), domain_weights_init=None, **kwargs):
         super(ConceptGaussians, self).__init__(**kwargs)
         self.mean_init = mean_init
         self.log_var_init = log_var_init
+        self.domain_weights_init = domain_weights_init
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         # the max number of different values for different domains
         max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains]) 
-        self.mean = self.add_weight(name='kernel',
-                                      shape=(len(enc.concept_domains), max_concepts),
-                                      initializer=keras.initializers.RandomUniform(minval=self.mean_init[0], 
-                                                                                   maxval=self.mean_init[1]),
-                                      trainable=True)
-        self.log_var = self.add_weight(name='kernel',
-                                      shape=(len(enc.concept_domains), max_concepts),
-                                      initializer=keras.initializers.RandomUniform(minval=self.log_var_init[0], 
-                                                                                   maxval=self.log_var_init[1]),
-                                      trainable=True)
+        self.mean = self.add_weight(
+            name="concept_mean",
+            shape=(len(enc.concept_domains), max_concepts),
+            initializer=keras.initializers.RandomUniform(minval=self.mean_init[0], 
+                                                         maxval=self.mean_init[1]),
+            trainable=True
+        )
+        self.log_var = self.add_weight(
+            name="concept_log_var",
+            shape=(len(enc.concept_domains), max_concepts),
+            initializer=keras.initializers.RandomUniform(minval=self.log_var_init[0], 
+                                                         maxval=self.log_var_init[1]),
+            trainable=True
+        )
+        if self.domain_weights_init is not None:
+            self.domain_weights = self.add_weight(
+                name="domain_weights",
+                shape=(len(enc.concept_domains), len(enc.concept_domains), max_concepts),
+                initializer=keras.initializers.RandomUniform(minval=self.domain_weights_init[0], 
+                                                             maxval=self.domain_weights_init[1]),
+                trainable=True
+            )
+
         super(ConceptGaussians, self).build(input_shape)
 
     @tf.function(jit_compile=True)  # for faster training, just in time compilation 
-    def call(self, labels, **kwargs):
+    def call(self, labels, domain_index=None, **kwargs):
         """
         labels: list of labels corresponding to an image?
         """
@@ -59,7 +75,11 @@ class ConceptGaussians(layers.Layer):
         indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))    
         means = tf.transpose(tf.gather_nd(self.mean, indices, batch_dims=1))
         log_vars = tf.transpose(tf.gather_nd(self.log_var, indices, batch_dims=1))
-        return means, log_vars
+        if self.domain_weights_init is None:
+            return means, log_vars
+        else:
+            domain_weights = tf.transpose(tf.gather_nd(self.domain_weights[domain_index], indices, batch_dims=1))
+            return means, log_vars, domain_weights
         
 
 class VAE(keras.Model):
@@ -73,9 +93,15 @@ class VAE(keras.Model):
         self.total_loss_tracker = keras.metrics.Mean(name="total_loss")
         self.reconstruction_loss_tracker = keras.metrics.Mean(name="reconstruction_loss")
         if  self.params['model_type'] == 'conceptual':
-            self.kl_loss_function = self.kl_conceptual_fun
-            self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'], 
-                                                      self.params['gaussians_log_var_init'])
+            if self.params['learn_domains']:
+                self.kl_loss_function = self.kl_conceptual_learn_domains_fun
+                self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'], 
+                                                          self.params['gaussians_log_var_init'],
+                                                          self.params['domain_weights_init'])
+            else:
+                self.kl_loss_function = self.kl_conceptual_fun
+                self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'], 
+                                                          self.params['gaussians_log_var_init'])
         elif self.params['model_type'] == 'conditional':
             self.kl_loss_function = self.kl_conditional_fun
         self.kl_loss_tracker = keras.metrics.Mean(name="kl_loss")
@@ -205,7 +231,7 @@ class VAE(keras.Model):
             components=[ tfd.Normal(loc=any_means[i], scale=any_stdevs[i])
                                 for i in range(len(any_indices))]
         )
-        z_i = encoder_gaussians.sample(self.params['num_samples_for_any_kl'])
+        z_i = encoder_gaussians.sample(self.params['num_samples_for_kl_monte_carlo'])
         # calculate KL:  KL(q(z|X), p(z|ANY)) = 1\N \sum_i (log q(z_i|X) - log p(z_i|ANY))
         kl_loss = tf.reduce_mean(encoder_gaussians.log_prob(z_i) - any_gaussians.log_prob(z_i), axis=0)
         return kl_loss
@@ -233,6 +259,37 @@ class VAE(keras.Model):
                 # add the Kl loss at the appropriate indices
                 kl_loss += tf.scatter_nd(indices_without_any, kl_loss_without_any, tf.shape(kl_loss))
                 kl_loss += tf.scatter_nd(indices_with_any, kl_loss_with_any, tf.shape(kl_loss))
+                # unit normal regularization
+                kl_loss = kl_loss + self.params['unit_normal_regularization_factor'] * \
+                                    self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
+            else:
+                kl_loss = kl_loss + self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
+        kl_loss = tf.reduce_mean(kl_loss)
+        return kl_loss
+
+    @tf.function(jit_compile=True)
+    def kl_conceptual_learn_domains_fun(self, images_and_labels, z_mean, z_log_var):
+        labels = images_and_labels[1]
+        z_stdev = tf.sqrt(tf.exp(z_log_var))
+        encoder_gaussians = tfd.Normal(z_mean, z_stdev)
+        # create empty kl_loss of shape (batch_size,)
+        kl_loss = tf.zeros(tf.shape(labels)[0])
+        # for each domain, compute kl_loss
+        for i in range(z_mean.shape[1]):
+            if i < len(enc.concept_domains):
+                concept_mean, concept_log_var, domain_weights = self.concept_gaussians(labels, i)
+                concept_stdev = tf.sqrt(tf.exp(concept_log_var))
+                # calculate domain probability as the softmax of domain weights
+                domain_prob = tf.nn.softmax(domain_weights)
+                # create a mixture of concept gaussians with the probability domain_prob
+                gaussian_mixture = tfd.Mixture(
+                    cat=tfd.Categorical(probs=domain_prob),
+                    components=[ tfd.Normal(concept_mean[:, i], concept_stdev[:, i])
+                                        for i in range(len(enc.concept_domains))]
+                )
+                z_i = encoder_gaussians[:,i].sample(self.params['num_samples_for_kl_monte_carlo'])
+                kl_loss = tf.reduce_mean(encoder_gaussians[:,i].log_prob(z_i) - \
+                     gaussian_mixture.log_prob(z_i), axis=0)
                 # unit normal regularization
                 kl_loss = kl_loss + self.params['unit_normal_regularization_factor'] * \
                                     self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])

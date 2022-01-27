@@ -60,10 +60,10 @@ params = {
     'gaussians_mean_init': (-1., 1.),   # initialisation interval for means of Gaussians
     'gaussians_log_var_init': (-7, 0.),    # initialisation interval for log var of Gaussians
     'unit_normal_regularization_factor': 0, # regularisation factor for concept Gaussians; set to 0 if you don't want to regularize Gaussians
-    
-    # extra parameters for ANY label of conceptual VAE
-    'valid_concepts': valid_concepts_encoded,  # dictionary of valid concepts for each domain
-    'num_samples_for_any_kl': 10000,  # number of samples for calculating KL divergence for ANY label
+    'num_samples_for_kl_monte_carlo': 10000,  # number of samples for calculating KL divergence; used for ANY or learning domains
+    'learn_domains': True,  # whether we are learning the concept domains
+    'domain_weights_init': (-1., 1.),  # initialisation interval for domain weights
+    'valid_concepts': valid_concepts_encoded,  # dictionary of valid concepts for each domain (extra parameter for ANY label)
 }
 
 
