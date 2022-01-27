@@ -22,9 +22,9 @@ config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
 
 
-IMAGE_DIR='images/any_one/'   # location of dataset images
+IMAGE_DIR='images/basic_train/'   # location of dataset images
 BATCH_SIZE=32
-NUM_EPOCHS=200
+NUM_EPOCHS=800
 
 # prepare dataset
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
@@ -52,8 +52,8 @@ params = {
     'kernel_size': 4,   # the size of the sliding window in CNN
     'num_strides': 2,   # the size of the step for which the sliding window is moved in CNN
 #    'pool_size': (2,2), # not used atm
-    'dense_dropout': 0.5, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for dense layers
-    'convolutional_dropout': 0.1, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for convolutional layers
+    'dense_dropout': 0.0, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for dense layers
+    'convolutional_dropout': 0.0, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for convolutional layers
 
     # extra parameters for conceptual VAE
     'use_labels_in_encoder': False,  # whether we are passing labels in encoder
