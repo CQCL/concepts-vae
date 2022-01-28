@@ -37,7 +37,8 @@ class ConceptGaussians(layers.Layer):
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         # the max number of different values for different domains
-        max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains]) 
+        max_concepts = max([len(enc.enc_dict[concept]) for concept in enc.concept_domains]) - 1 # -1 because of the 'ANY' concept
+                                                                                                #TODO: fix this hacky way of dealing with ANY
         self.mean = self.add_weight(
             name="concept_mean",
             shape=(len(enc.concept_domains), max_concepts),
@@ -293,6 +294,11 @@ class VAE(keras.Model):
                 mixture_log_prob = tf.where(tf.math.is_inf(mixture_log_prob), tf.zeros_like(mixture_log_prob), mixture_log_prob)
                 mixture_log_prob = tf.where(tf.math.is_nan(mixture_log_prob), tf.zeros_like(mixture_log_prob), mixture_log_prob)
                 kl_loss = tf.reduce_mean(encoder_log_prob - mixture_log_prob, axis=0)
+                # if tf.reduce_any(tf.math.is_nan(kl_loss)):
+                #     tf.print('kl_loss is nan for domain', i)
+                #     tf.print('encoder_log_prob', tf.math.reduce_any(tf.math.is_finite(encoder_gaussians[:,i].log_prob(z_i))))
+                #     tf.print('mixture_log_prob', tf.math.reduce_any(tf.math.is_finite(gaussian_mixture.log_prob(z_i))))
+
                 # unit normal regularization
                 kl_loss = kl_loss + self.params['unit_normal_regularization_factor'] * \
                                     self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
