@@ -6,9 +6,11 @@ import numpy as np
 import scipy.stats as stats
 import tensorflow as tf
 from matplotlib import pyplot as plt
+from sklearn.metrics import accuracy_score
 
 from vae import encoding_dictionary as enc
 from vae import utils
+from vae.data_generator import ImageGenerator
 
 
 class ImageSaveCallback(tf.keras.callbacks.Callback):
@@ -70,3 +72,45 @@ class GaussianPlotCallback(tf.keras.callbacks.Callback):
         # ffmpeg -framerate 1 -i images/training/gaussian_epoch_%01d_dim_0.png -pix_fmt yuv420p images/training/a_video.mp4
 
 
+
+
+class ClassificationCallback(tf.keras.callbacks.Callback):
+    def __init__(self, val_folder_name, **kwargs):
+        super(ClassificationCallback, self).__init__(**kwargs)
+        val_folder_name = val_folder_name
+        self.data_it = ImageGenerator(val_folder_name, batch_size=1)
+        self.num_images = len(self.data_it)
+        self.concept_names = [['blue', 'red', 'green'],
+                              ['small', 'medium', 'large'],
+                              ['circle', 'square', 'triangle'],
+                              ['top', 'centre', 'bottom']]
+
+
+    def on_epoch_end(self, epoch, logs=None):
+        predictions = []
+        truth_labels = []
+        for i in range(self.num_images):
+            tf.print("Classifying image " + str(i+1) + " of " + str(self.num_images), end='\r')
+            image_and_label = self.data_it[i]
+            truth_labels.append(utils.encode_or_decode(self.data_it[i][1][0]))
+            num_concept_domains = len(self.concept_names)
+            z_mean, _, _ = self.model.encoder(image_and_label)
+            z_mean = z_mean.numpy()[0]
+
+            # for each concept domain, get the concept with mean closest to z_mean
+            result = []
+            for i, concepts in enumerate(self.concept_names):
+                encoding_dict = enc.enc_dict[enc.concept_domains[i]]
+                concepts_enc = np.array([encoding_dict[concept] for concept in concepts])
+                concept_means = self.model.concept_gaussians.mean.numpy()[i][concepts_enc]
+                distances = [np.abs(concept_mean - z_mean[i]) for concept_mean in concept_means]
+                result.append(concepts[np.argmin(distances)])
+            predictions.append(result)
+        tf.print('')
+        truth_labels = np.array(truth_labels)
+        predictions = np.array(predictions)
+        accuracy_list = np.zeros(num_concept_domains)
+        for i in range(num_concept_domains):
+            accuracy_list[i] = accuracy_score(truth_labels[:,i], predictions[:,i])
+            tf.summary.scalar(enc.concept_domains[i] + ' accuracy', data=accuracy_list[i], step=epoch)
+        tf.summary.scalar('average accuracy', data=np.mean(accuracy_list), step=epoch)

@@ -11,7 +11,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from vae import encoding_dictionary as enc
-from vae.callbacks import (GaussianPlotCallback,  # for saving images; for visualising Gaussians
+from vae.callbacks import (ClassificationCallback, GaussianPlotCallback,  # for saving images; for visualising Gaussians
                            ImageSaveCallback)
 from vae.data_generator import get_tf_dataset   # imports the optimised data generator function
 from vae.model import VAE   
@@ -85,8 +85,9 @@ tbCallBack = keras.callbacks.TensorBoard(log_dir='logs',
                                          )
 imgCallback = ImageSaveCallback(sample_input[0][0], 'images/training/')
 gaussCallback = GaussianPlotCallback('images/training/')
+classificationCallback = ClassificationCallback('images/basic_val/')
 # add/remove callbacks if you want
-callbacks = [tbCallBack]
+callbacks = [tbCallBack, classificationCallback]
 
 vae.fit(dataset_tf, epochs=NUM_EPOCHS, callbacks=callbacks)
 
