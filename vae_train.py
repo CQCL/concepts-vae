@@ -76,7 +76,7 @@ vae.compile(optimizer=keras.optimizers.Adam())
 sample_input = list(dataset_tf.take(1).as_numpy_iterator())[0]
 vae.predict(sample_input)
 
-tbCallBack = keras.callbacks.TensorBoard(log_dir='logs', 
+tbCallBack = keras.callbacks.TensorBoard(log_dir='logs/{}'.format(datetime.now().strftime("%B_%d_%H_%M")), 
                                          histogram_freq=0,
                                          write_graph=True,
                                          write_images=True,
