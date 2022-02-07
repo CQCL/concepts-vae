@@ -42,14 +42,14 @@ class ConceptGaussians(layers.Layer):
         self.mean = self.add_weight(
             name="concept_mean",
             shape=(len(enc.concept_domains), max_concepts),
-            initializer=keras.initializers.RandomUniform(minval=self.mean_init[0], 
+            initializer=keras.initializers.RandomUniform(minval=self.mean_init[0],
                                                          maxval=self.mean_init[1]),
             trainable=True
         )
         self.log_var = self.add_weight(
             name="concept_log_var",
             shape=(len(enc.concept_domains), max_concepts),
-            initializer=keras.initializers.RandomUniform(minval=self.log_var_init[0], 
+            initializer=keras.initializers.RandomUniform(minval=self.log_var_init[0],
                                                          maxval=self.log_var_init[1]),
             trainable=True
         )
@@ -57,23 +57,23 @@ class ConceptGaussians(layers.Layer):
             self.domain_weights = self.add_weight(
                 name="domain_weights",
                 shape=(len(enc.concept_domains), len(enc.concept_domains), max_concepts),
-                initializer=keras.initializers.RandomUniform(minval=self.domain_weights_init[0], 
+                initializer=keras.initializers.RandomUniform(minval=self.domain_weights_init[0],
                                                              maxval=self.domain_weights_init[1]),
                 trainable=True
             )
 
         super(ConceptGaussians, self).build(input_shape)
 
-    @tf.function(jit_compile=True)  # for faster training, just in time compilation 
+    @tf.function(jit_compile=True)  # for faster training, just in time compilation
     def call(self, labels, **kwargs):
         """
         labels: list of labels corresponding to an image?
         """
         labels = tf.cast(labels, tf.int32)  # casting from float to int
-        # gather_nd gathers slices from self.mean into a Tensor with shape specified by indices  
+        # gather_nd gathers slices from self.mean into a Tensor with shape specified by indices
         # (i.e., the needed indices corresponding to current concepts based on labels)
         # (cf., https://www.tensorflow.org/api_docs/python/tf/gather_nd)
-        indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))    
+        indices = tf.reshape(tf.transpose(labels), (tf.shape(labels)[1], tf.shape(labels)[0],1))
         means = tf.transpose(tf.gather_nd(self.mean, indices, batch_dims=1))
         log_vars = tf.transpose(tf.gather_nd(self.log_var, indices, batch_dims=1))
         if self.domain_weights_init is None:
@@ -82,7 +82,7 @@ class ConceptGaussians(layers.Layer):
             domain_indices = tf.repeat(tf.expand_dims(indices, 0), repeats=tf.shape(self.domain_weights)[0], axis=0)
             domain_weights = tf.transpose(tf.gather_nd(self.domain_weights, domain_indices, batch_dims=2), perm=[2,0,1])
             return means, log_vars, domain_weights
-        
+
 
 class VAE(keras.Model):
     def __init__(self, params, **kwargs):
@@ -97,18 +97,18 @@ class VAE(keras.Model):
         if  self.params['model_type'] == 'conceptual':
             if self.params['learn_domains']:
                 self.kl_loss_function = self.kl_conceptual_learn_domains_fun
-                self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'], 
+                self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'],
                                                           self.params['gaussians_log_var_init'],
                                                           self.params['domain_weights_init'])
             else:
                 self.kl_loss_function = self.kl_conceptual_fun
-                self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'], 
+                self.concept_gaussians = ConceptGaussians(self.params['gaussians_mean_init'],
                                                           self.params['gaussians_log_var_init'])
         elif self.params['model_type'] == 'conditional':
             self.kl_loss_function = self.kl_conditional_fun
         self.kl_loss_tracker = keras.metrics.Mean(name="kl_loss")
         self.mse = tf.keras.losses.MeanSquaredError(reduction='none')
-    
+
     def get_config(self):
         # returns parameters with which vae was instanciated
         return self.params
@@ -180,7 +180,7 @@ class VAE(keras.Model):
             total_loss, reconstruction_loss, kl_loss = self.compute_loss(images_and_labels)
         grads = tape.gradient(total_loss, self.trainable_weights)
 
-        self.optimizer.apply_gradients((grad, weights) 
+        self.optimizer.apply_gradients((grad, weights)
             for (grad, weights) in zip(grads, self.trainable_weights)
             if grad is not None)
 
@@ -246,11 +246,11 @@ class VAE(keras.Model):
         for i in range(z_mean.shape[1]):
             if i < len(enc.concept_domains):
                 # seperarte indices for 'any' vs other labels in the concept domain
-                indices_with_any = tf.cast(tf.where(labels[:,i] == -1), tf.int32)   # 'any' label is represented as -1 
+                indices_with_any = tf.cast(tf.where(labels[:,i] == -1), tf.int32)   # 'any' label is represented as -1
                 indices_without_any = tf.cast(tf.where(labels[:,i] >= 0), tf.int32)  # other labels are represented as non-negative integers
                 # compute the kl loss
                 kl_loss_without_any = self.kl_loss_general(tf.gather_nd(z_mean, indices_without_any)[:,i],
-                                                           tf.gather_nd(z_log_var, indices_without_any)[:,i], 
+                                                           tf.gather_nd(z_log_var, indices_without_any)[:,i],
                                                            tf.gather_nd(concept_mean, indices_without_any)[:,i],
                                                            tf.gather_nd(concept_log_var, indices_without_any)[:,i])
                 kl_loss_with_any = self.kl_loss_for_any(tf.gather_nd(z_mean, indices_with_any)[:,i],
@@ -281,6 +281,7 @@ class VAE(keras.Model):
                 concept_stdev = tf.sqrt(tf.exp(concept_log_var))
                 # calculate domain probability as the softmax of domain weights
                 domain_prob = tf.nn.softmax(domain_weights[:,i])
+                label_prob = [ tf.nn.softmax(domain_weights[:,:,j]) for j in range(len(enc.concept_domains)) ]
                 # create a mixture of concept gaussians with the probability domain_prob
                 gaussian_mixture = tfd.Mixture(
                     cat=tfd.Categorical(probs=domain_prob),
@@ -295,7 +296,13 @@ class VAE(keras.Model):
                 mixture_log_prob = tf.where(tf.math.is_inf(mixture_log_prob), tf.zeros_like(mixture_log_prob), mixture_log_prob)
                 mixture_log_prob = tf.where(tf.math.is_nan(mixture_log_prob), tf.zeros_like(mixture_log_prob), mixture_log_prob)
                 kl_loss = tf.reduce_mean(encoder_log_prob - mixture_log_prob, axis=0)
-            
+
+                domain_mixture_prob = tfd.Categorical(probs=domain_prob)
+                domain_mixture_entropy = domain_mixture_prob.entropy()
+                label_mixture_prob = tfd.Categorical(probs=label_prob)
+                label_mixture_entropy = tf.reduce_sum(label_mixture_prob.entropy(), axis=0)
+                kl_loss = kl_loss + domain_mixture_entropy + label_mixture_entropy
+
                 # unit normal regularization
                 kl_loss = kl_loss + self.params['unit_normal_regularization_factor'] * \
                                     self.kl_loss_normal(z_mean[:,i], z_log_var[:,i])
