@@ -1,3 +1,6 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+
 from itertools import product
 import tensorflow as tf
 from tensorflow import keras

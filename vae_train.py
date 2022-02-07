@@ -24,7 +24,7 @@ sess = tf.compat.v1.Session(config=config)
 
 IMAGE_DIR='images/basic_train/'   # location of dataset images
 BATCH_SIZE=32
-NUM_EPOCHS=800
+NUM_EPOCHS=200
 
 # prepare dataset
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
@@ -61,7 +61,7 @@ params = {
     'gaussians_log_var_init': (-7, 0.),    # initialisation interval for log var of Gaussians
     'unit_normal_regularization_factor': 0, # regularisation factor for concept Gaussians; set to 0 if you don't want to regularize Gaussians
     'num_samples_for_kl_monte_carlo': 10000,  # number of samples for calculating KL divergence; used for ANY or learning domains
-    'learn_domains': True,  # whether we are learning the concept domains
+    'learn_domains': False,  # whether we are learning the concept domains
     'domain_weights_init': (-1., 1.),  # initialisation interval for domain weights
     'valid_concepts': valid_concepts_encoded,  # dictionary of valid concepts for each domain (extra parameter for ANY label)
 }

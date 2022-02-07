@@ -16,8 +16,8 @@ config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
 
 
-vae = keras.models.load_model('saved_models/vae_weights_December_14_11:29')
-data_it = ImageGenerator('images/basic', batch_size=1)
+vae = keras.models.load_model('saved_models/vae_weights_January_26_22_37')
+data_it = ImageGenerator('images/basic_val', batch_size=1)
 
 
 CONCEPT_NAMES = [['blue', 'red', 'green'],
