@@ -65,7 +65,7 @@ class ConceptGaussians(layers.Layer):
         super(ConceptGaussians, self).build(input_shape)
 
     @tf.function(jit_compile=True)  # for faster training, just in time compilation 
-    def call(self, labels, domain_index=None, **kwargs):
+    def call(self, labels, **kwargs):
         """
         labels: list of labels corresponding to an image?
         """
@@ -79,7 +79,8 @@ class ConceptGaussians(layers.Layer):
         if self.domain_weights_init is None:
             return means, log_vars
         else:
-            domain_weights = tf.transpose(tf.gather_nd(self.domain_weights[domain_index], indices, batch_dims=1))
+            domain_indices = tf.repeat(tf.expand_dims(indices, 0), repeats=tf.shape(self.domain_weights)[0], axis=0)
+            domain_weights = tf.transpose(tf.gather_nd(self.domain_weights, domain_indices, batch_dims=2), perm=[2,0,1])
             return means, log_vars, domain_weights
         
 
@@ -269,6 +270,7 @@ class VAE(keras.Model):
     @tf.function(jit_compile=True)
     def kl_conceptual_learn_domains_fun(self, images_and_labels, z_mean, z_log_var):
         labels = images_and_labels[1]
+        concept_mean, concept_log_var, domain_weights = self.concept_gaussians(labels)
         z_stdev = tf.sqrt(tf.exp(z_log_var))
         encoder_gaussians = tfd.Normal(z_mean, z_stdev)
         # create empty kl_loss of shape (batch_size,)
@@ -276,10 +278,9 @@ class VAE(keras.Model):
         # for each domain, compute kl_loss
         for i in range(z_mean.shape[1]):
             if i < len(enc.concept_domains):
-                concept_mean, concept_log_var, domain_weights = self.concept_gaussians(labels, i)
                 concept_stdev = tf.sqrt(tf.exp(concept_log_var))
                 # calculate domain probability as the softmax of domain weights
-                domain_prob = tf.nn.softmax(domain_weights)
+                domain_prob = tf.nn.softmax(domain_weights[:,i])
                 # create a mixture of concept gaussians with the probability domain_prob
                 gaussian_mixture = tfd.Mixture(
                     cat=tfd.Categorical(probs=domain_prob),
