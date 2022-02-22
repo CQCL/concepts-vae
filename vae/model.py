@@ -53,6 +53,25 @@ class ConceptGaussians(layers.Layer):
                                                          maxval=self.log_var_init[1]),
             trainable=True
         )
+
+        # domain_weights_shape = (4_dimension, 4_domains, 3_concepts)
+        # [ dim-0 [
+        #             [w_red, w_green, w_blue],
+        #             [w_small, w_medium, w_large],
+        #             ...
+        #         ],
+        #   dim-1 [
+        #             [w_red, w_green, w_blue],
+        #             [w_small, w_medium, w_large],
+        #             ...
+        #         ],
+        #   dim-2 [
+        #             ...
+        #         ],
+        #   dim-3 [
+        #             ...
+        #         ],
+        # ]
         if self.domain_weights_init is not None:
             self.domain_weights = self.add_weight(
                 name="domain_weights",
