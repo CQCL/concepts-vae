@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 import tensorflow as tf
 from matplotlib import pyplot as plt
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, silhouette_score
 
 from vae import encoding_dictionary as enc
 from vae import utils
@@ -77,7 +77,6 @@ class GaussianPlotCallback(tf.keras.callbacks.Callback):
 class ClassificationCallback(tf.keras.callbacks.Callback):
     def __init__(self, val_folder_name, **kwargs):
         super(ClassificationCallback, self).__init__(**kwargs)
-        val_folder_name = val_folder_name
         self.data_it = ImageGenerator(val_folder_name, batch_size=1)
         self.num_images = len(self.data_it)
         self.concept_names = [['blue', 'red', 'green'],
@@ -114,3 +113,36 @@ class ClassificationCallback(tf.keras.callbacks.Callback):
             accuracy_list[i] = accuracy_score(truth_labels[:,i], predictions[:,i])
             tf.summary.scalar(enc.concept_domains[i] + ' accuracy', data=accuracy_list[i], step=epoch)
         tf.summary.scalar('average accuracy', data=np.mean(accuracy_list), step=epoch)
+
+
+class ClusterQualityCallback(tf.keras.callbacks.Callback):
+    def __init__(self, val_folder_name, **kwargs):
+        super(ClusterQualityCallback, self).__init__(**kwargs)
+        self.num_images = len(os.listdir(val_folder_name))
+        self.data_it = ImageGenerator(val_folder_name, batch_size=self.num_images)
+        self.data_it = self.data_it[0]
+
+    def calculate_dimensions_for_domains(self):
+        domain_weights = self.model.concept_gaussians.domain_weights
+        probs = tf.nn.softmax(tf.reduce_sum(domain_weights, axis=2), axis=1)
+        available_dimensions = list(range(len(enc.concept_domains)))
+        dimensions_for_domains = []
+        for i in range(len(enc.concept_domains)):
+            dim_with_highest_prob = tf.argmax(tf.gather(probs, available_dimensions)[:,i])
+            chosen_dimension = available_dimensions[dim_with_highest_prob]
+            dimensions_for_domains.append(chosen_dimension)
+            available_dimensions.remove(chosen_dimension)
+        return dimensions_for_domains
+
+    def on_epoch_end(self, epoch, logs=None):
+        z_mean, _, _ = self.model.encoder(self.data_it)
+        dimensions_for_domains = self.calculate_dimensions_for_domains()
+        cluster_quality = []
+        for domain, dimension in enumerate(dimensions_for_domains):
+            means = z_mean[:, dimension]
+            labels = self.data_it[1][:, dimension]
+            cluster_quality.append(silhouette_score(means[:, tf.newaxis], labels))
+        for i, quality in enumerate(cluster_quality):
+            tf.summary.scalar(enc.concept_domains[i] + ' cluster quality', data=cluster_quality[i], step=epoch)
+        tf.summary.scalar('average cluster quality', data=np.mean(cluster_quality), step=epoch)
+

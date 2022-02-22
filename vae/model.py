@@ -54,7 +54,7 @@ class ConceptGaussians(layers.Layer):
             trainable=True
         )
 
-        # domain_weights_shape = (4_dimension, 4_domains, 3_concepts)
+        # domain_weights_shape = (4_dimensions, 4_domains, 3_concepts)
         # [ dim-0 [
         #             [w_red, w_green, w_blue],
         #             [w_small, w_medium, w_large],
