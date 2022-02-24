@@ -135,14 +135,10 @@ class VAE(keras.Model):
     def encoder_model(self):
         encoder_image_inputs = keras.Input(shape=self.params['input_shape'][0])
         encoder_label_inputs = keras.Input(shape=self.params['input_shape'][1])
-        x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(encoder_image_inputs)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
+        x = encoder_image_inputs
+        for _ in range(self.params['num_layers']):
+            x = layers.Conv2D(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
+            x = layers.Dropout(self.params['convolutional_dropout'])(x)
         conv_shape = tf.keras.backend.int_shape(x) # Shape of convonlutional layer to be provided to decoder
         x = layers.Flatten()(x)
         if self.params['model_type'] == 'conceptual' and self.params['use_labels_in_encoder']:
@@ -167,14 +163,9 @@ class VAE(keras.Model):
         x = layers.Dense(conv_shape[1]*conv_shape[2]*conv_shape[3], activation="relu")(x)
         x = layers.Dropout(self.params['dense_dropout'])(x)
         x = layers.Reshape((conv_shape[1], conv_shape[2], conv_shape[3]))(x)
-        x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
-        x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
-        x = layers.Dropout(self.params['convolutional_dropout'])(x)
+        for _ in range(self.params['num_layers']):
+            x = layers.Conv2DTranspose(64, self.params['kernel_size'], activation="relu", strides=self.params['num_strides'], padding="same")(x)
+            x = layers.Dropout(self.params['convolutional_dropout'])(x)
         decoder_outputs = layers.Conv2DTranspose(self.params['num_channels'], self.params['kernel_size'], activation="relu", padding="same")(x)
         decoder = keras.Model([latent_inputs, label_inputs], decoder_outputs, name="decoder")
         return decoder

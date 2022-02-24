@@ -49,6 +49,7 @@ params = {
                                                                         # our case: [(64,64,3),(4,)]
 
     # NN setup
+    'num_layers': 4,    # number of convolutional layers
     'kernel_size': 4,   # the size of the sliding window in CNN
     'num_strides': 2,   # the size of the step for which the sliding window is moved in CNN
 #    'pool_size': (2,2), # not used atm
