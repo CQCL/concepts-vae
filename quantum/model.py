@@ -25,14 +25,20 @@ class Qoncepts(keras.Model):
         image_input = keras.Input(shape=self.params['image_input_shape'])
         concept_PQCs_params = keras.Input(shape=(self.params['num_domains']*3))
         # create CNN layers
-        encoder_cnn = image_input
-        for _ in range(self.params['num_layers']):
-            encoder_cnn = keras.layers.Conv2D(64, self.params['kernel_size'], activation="relu", 
-                strides=self.params['num_strides'], padding="same")(encoder_cnn)
-        encoder_cnn = keras.layers.Flatten()(encoder_cnn)
-        encoder_cnn = keras.layers.Dense(256, activation="relu")(encoder_cnn)
-        encoder_cnn = keras.layers.Dense(self.params['num_domains']*3, activation="relu")(encoder_cnn)
+        encoder_cnn = self.define_cnn(image_input)
         # create pqc layers
+        controlled_pqc = self.define_pqc()
+        # input 0 state to the pqc
+        circuits_input =  tfq.convert_to_tensor([cirq.Circuit()])
+        # repeat the input for the number of samples in batch
+        circuits_input = tf.repeat(circuits_input, tf.shape(image_input)[0], axis=0)
+        pqc_all_params = tf.concat([encoder_cnn, concept_PQCs_params], axis=1)
+        expectation = controlled_pqc([circuits_input, pqc_all_params]) 
+        # The full Keras model is built from our layers.
+        model = keras.Model(inputs=([image_input, concept_PQCs_params]), outputs=expectation)
+        return model
+
+    def define_pqc(self):
         # one qubit for each domain
         qubits = [cirq.GridQubit(i, 0) for i in range(self.params['num_domains'])]
         # Parameters that the classical NN will feed values into. Three parameters for each domain (qubit).
@@ -61,15 +67,17 @@ class Qoncepts(keras.Model):
             operators=measurement_operators
         )
         print(pqc)
-        # input 0 state to the pqc
-        circuits_input =  tfq.convert_to_tensor([cirq.Circuit()])
-        # repeat the input for the number of samples in batch
-        circuits_input = tf.repeat(circuits_input, tf.shape(image_input)[0], axis=0)
-        pqc_all_params = tf.concat([encoder_cnn, concept_PQCs_params], axis=1)
-        expectation = controlled_pqc([circuits_input, pqc_all_params]) 
-        # The full Keras model is built from our layers.
-        model = keras.Model(inputs=([image_input, concept_PQCs_params]), outputs=expectation)
-        return model
+        return controlled_pqc
+
+    def define_cnn(self, image_input):
+        encoder_cnn = image_input
+        for _ in range(self.params['num_layers']):
+            encoder_cnn = keras.layers.Conv2D(64, self.params['kernel_size'], activation="relu", 
+                strides=self.params['num_strides'], padding="same")(encoder_cnn)
+        encoder_cnn = keras.layers.Flatten()(encoder_cnn)
+        encoder_cnn = keras.layers.Dense(256, activation="relu")(encoder_cnn)
+        encoder_cnn = keras.layers.Dense(self.params['num_domains']*3, activation="relu")(encoder_cnn)
+        return encoder_cnn
 
     @property
     def metrics(self):
