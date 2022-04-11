@@ -40,10 +40,10 @@ def qoncepts_classifier(image, model, concept_names=CONCEPT_NAMES):
     concept_combinations = list(itertools.product(*concept_names))
     # for each concept combination, encode the image and get the loss
     losses = {}
+    image = np.expand_dims(image, axis=0)
     for concept_combination in concept_combinations:
-        labels = np.expand_dims(encode_or_decode(concept_combination), axis=0)
-        images = np.expand_dims(image, axis=0)
-        loss = model.compute_loss((images, labels))
+        label = np.expand_dims(encode_or_decode(concept_combination), axis=0)
+        loss = model.compute_loss((image, label))
         losses[concept_combination] = loss
     # sort the dictionary by the loss
     losses = sorted(losses.items(), key=lambda x: x[1])
