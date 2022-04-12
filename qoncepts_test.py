@@ -43,6 +43,7 @@ def qoncepts_classifier(image, model, concept_names=CONCEPT_NAMES):
     image = np.expand_dims(image, axis=0)
     for concept_combination in concept_combinations:
         label = np.expand_dims(encode_or_decode(concept_combination), axis=0)
+        label = np.array(label, dtype=np.float32)
         loss = model.compute_loss((image, label))
         losses[concept_combination] = loss
     # sort the dictionary by the loss
@@ -63,9 +64,9 @@ qoncepts = Qoncepts(params)
 qoncepts.compile(optimizer=tf.keras.optimizers.Adam())
 sample_input = list(dataset_tf.take(1).as_numpy_iterator())[0]
 qoncepts(sample_input)
-qoncepts.load_weights('saved_models/qoncepts_April_11_13_14.h5')
+qoncepts.load_weights('saved_models/qoncepts_April_12_18_15.h5')
 
-num_images = 200 # number of images to classify
+num_images = 100 # number of images to classify
 qoncepts_prediction_labels = []
 truth_labels = []
 for i in range(num_images):

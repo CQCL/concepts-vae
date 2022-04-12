@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow_probability import distributions as tfd
 import tensorflow_quantum as tfq
 
 import cirq
@@ -16,6 +17,12 @@ class Qoncepts(keras.Model):
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.concept_pqcs = ConceptPQCs()
         self.mse = keras.losses.MeanSquaredError(reduction='none')
+        self.all_labels = tf.convert_to_tensor([[
+            [0.,1.,2.],
+            [0.,1.,2.],
+            [0.,1.,2.],
+            [0.,1.,2.]
+        ]])
 
     def get_config(self):
         # returns parameters with which the model was instanciated
@@ -92,7 +99,7 @@ class Qoncepts(keras.Model):
         concept_PQCs_params = tf.reshape(concept_PQCs_params, (-1, self.params['num_domains']*3))
         return self.model([images_and_labels[0], concept_PQCs_params])
 
-    # @tf.function
+    @tf.function
     def train_step(self, images_and_labels):
         with tf.GradientTape() as tape:
             loss = self.compute_loss(images_and_labels)
@@ -107,10 +114,23 @@ class Qoncepts(keras.Model):
             "loss": self.loss_tracker.result(),
         }
 
-    # @tf.function
+    @tf.function
     def compute_loss(self, images_and_labels):
-        expectation = self.call(images_and_labels)
-        loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(expectation), axis=1))
+        # positive samples
+        pos_expectation = self.call(images_and_labels)
+        loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(pos_expectation), axis=1))
+        # negative samples
+        all_labels = tf.repeat(self.all_labels, tf.shape(images_and_labels[1])[0], axis=0)
+        cur_labels = tf.repeat(tf.expand_dims(images_and_labels[1], axis=2), 3, axis=2)
+        dist = tfd.Categorical(probs=tf.cast(all_labels != cur_labels, tf.float32))
+        samples = dist.sample()
+        neg_expectation = self.call([images_and_labels[0], samples])
+        loss = loss + tf.reduce_mean(
+            tf.reduce_sum(
+                tf.math.square(neg_expectation - tf.ones_like(neg_expectation)),
+                axis=1
+            )
+        )
         return loss
 
 
