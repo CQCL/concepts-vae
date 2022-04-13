@@ -39,7 +39,7 @@ qoncepts.load_weights('saved_models/qoncepts_April_13_17_10.h5')
 
 for i, domain in enumerate(enc.concept_domains):
     b = qutip.Bloch()
-    for j in range(qoncepts.concept_pqcs.max_concepts):
+    for j in range(len(enc.enc_dict[domain])-1):
         rotation_vector = qoncepts.concept_pqcs.pqc_params[i][j]
         rotation_vector = rotation_vector[::-1]
         vec = rotate_zero_state(rotation_vector)
