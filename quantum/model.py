@@ -17,12 +17,11 @@ class Qoncepts(keras.Model):
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.concept_pqcs = ConceptPQCs()
         self.mse = keras.losses.MeanSquaredError(reduction='none')
-        self.all_labels = tf.convert_to_tensor([[
-            [0.,1.,2.],
-            [0.,1.,2.],
-            [0.,1.,2.],
-            [0.,1.,2.]
-        ]])
+        self.all_labels = tf.repeat(
+            tf.expand_dims(tf.range(self.concept_pqcs.max_concepts), axis=0), 
+            self.params['num_domains'], 
+            axis=0
+        )
 
     def get_config(self):
         # returns parameters with which the model was instanciated
@@ -121,7 +120,11 @@ class Qoncepts(keras.Model):
         loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1))
         # negative samples
         all_labels = tf.repeat(self.all_labels, tf.shape(images_and_labels[1])[0], axis=0)
-        cur_labels = tf.repeat(tf.expand_dims(images_and_labels[1], axis=2), 3, axis=2)
+        cur_labels = tf.repeat(
+            tf.expand_dims(images_and_labels[1], axis=2),
+            self.concept_pqcs.max_concepts,
+            axis=2
+        )
         dist = tfd.Categorical(probs=tf.cast(all_labels != cur_labels, tf.float32))
         samples = dist.sample()
         neg_expectation = self.call([images_and_labels[0], samples])
@@ -130,15 +133,18 @@ class Qoncepts(keras.Model):
 
 
 class ConceptPQCs(keras.layers.Layer):
-    def build(self, input_shape):
+    def __init__(self, **kwargs):
+        super(ConceptPQCs, self).__init__(**kwargs)
         # the max number of different values for different domains
-        max_concepts = max([len(enc.enc_dict[concept]) 
+        self.max_concepts = max([len(enc.enc_dict[concept]) 
             for concept in enc.concept_domains]) - 1 # -1 because of the 'ANY' concept
                                                      #TODO: fix this hacky way of dealing with ANY
+
+    def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         self.pqc_params = self.add_weight(
             name="pqc_params",
-            shape=(len(enc.concept_domains), max_concepts, 3),
+            shape=(len(enc.concept_domains), self.max_concepts, 3), # 3 is for 3 rotations
             trainable=True
         )
         super(ConceptPQCs, self).build(input_shape)
