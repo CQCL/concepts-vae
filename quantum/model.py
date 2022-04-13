@@ -118,19 +118,14 @@ class Qoncepts(keras.Model):
     def compute_loss(self, images_and_labels):
         # positive samples
         pos_expectation = self.call(images_and_labels)
-        loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(pos_expectation), axis=1))
+        loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1))
         # negative samples
         all_labels = tf.repeat(self.all_labels, tf.shape(images_and_labels[1])[0], axis=0)
         cur_labels = tf.repeat(tf.expand_dims(images_and_labels[1], axis=2), 3, axis=2)
         dist = tfd.Categorical(probs=tf.cast(all_labels != cur_labels, tf.float32))
         samples = dist.sample()
         neg_expectation = self.call([images_and_labels[0], samples])
-        loss = loss + tf.reduce_mean(
-            tf.reduce_sum(
-                tf.math.square(neg_expectation - tf.ones_like(neg_expectation)),
-                axis=1
-            )
-        )
+        loss += tf.reduce_mean(tf.reduce_sum(tf.math.square(-1 - neg_expectation), axis=1))
         return loss
 
 
