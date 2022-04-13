@@ -22,7 +22,7 @@ sess = tf.compat.v1.Session(config=config)
 
 IMAGE_DIR='images/basic_train/'   # location of dataset images
 BATCH_SIZE=32
-NUM_EPOCHS=100
+NUM_EPOCHS=200
 
 # prepare dataset
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
@@ -54,6 +54,5 @@ qoncepts.fit(dataset_tf, epochs=NUM_EPOCHS, callbacks=callbacks)
 save_location = os.path.join(
     'saved_models',
     'qoncepts_' + datetime.utcnow().strftime("%B_%d_%H_%M") + '.h5'
-    # 'qoncepts_weights.h5'
 )
 qoncepts.save_weights(save_location)

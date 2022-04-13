@@ -17,11 +17,11 @@ class Qoncepts(keras.Model):
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.concept_pqcs = ConceptPQCs()
         self.mse = keras.losses.MeanSquaredError(reduction='none')
-        self.all_labels = tf.repeat(
-            tf.expand_dims(tf.range(self.concept_pqcs.max_concepts), axis=0), 
+        self.all_labels = tf.expand_dims(tf.repeat(
+            tf.expand_dims(tf.range(self.concept_pqcs.max_concepts, dtype=tf.float32), axis=0), 
             self.params['num_domains'], 
             axis=0
-        )
+        ), axis=0)
 
     def get_config(self):
         # returns parameters with which the model was instanciated
