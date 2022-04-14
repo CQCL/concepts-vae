@@ -1,3 +1,4 @@
+import json
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow_probability import distributions as tfd
@@ -6,6 +7,7 @@ import tensorflow_quantum as tfq
 import cirq
 import sympy
 import vae.encoding_dictionary as enc
+from vae.data_generator import get_tf_dataset
 
 
 def one_qubit_rotation(qubit, symbols):
@@ -27,6 +29,20 @@ def entangling_layer(qubits):
     cz_ops += ([cirq.CZ(qubits[0], qubits[-1])] if len(qubits) != 2 else [])
     return cz_ops
 
+def load_saved_model(file_name, image_dir='images/basic_train'):
+    """
+    Loads a saved model from the file `file_name`.
+    """
+    with open(file_name + '_params.json', 'r') as f:
+        params = json.load(f)
+    dataset_tf = get_tf_dataset(image_dir, 1, return_image_shape=False)
+    qoncepts = Qoncepts(params)
+    qoncepts.compile()
+    sample_input = list(dataset_tf.take(1).as_numpy_iterator())[0]
+    qoncepts(sample_input)
+    qoncepts.load_weights(file_name + '.h5')
+    return qoncepts
+
 class Qoncepts(keras.Model):
     def __init__(self, params, **kwargs):
         super(Qoncepts, self).__init__(**kwargs)
@@ -44,6 +60,11 @@ class Qoncepts(keras.Model):
     def get_config(self):
         # returns parameters with which the model was instanciated
         return self.params
+
+    def save_model(self, file_name):
+        self.save_weights(file_name + '.h5')
+        with open(file_name + '_params.json', 'w') as f:
+            json.dump(self.params, f)
 
     def define_model(self):
         # create pqc layers

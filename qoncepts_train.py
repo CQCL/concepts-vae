@@ -55,8 +55,8 @@ callbacks = [tbCallBack]
 qoncepts.fit(dataset_tf, epochs=NUM_EPOCHS, callbacks=callbacks)
 
 # saving weights for the current trained model with a time stamp
-save_location = os.path.join(
+file_name = os.path.join(
     'saved_models',
-    'qoncepts_' + datetime.utcnow().strftime("%B_%d_%H_%M") + '.h5'
+    'qoncepts_' + datetime.utcnow().strftime("%B_%d_%H_%M")
 )
-qoncepts.save_weights(save_location)
+qoncepts.save_model(file_name)
