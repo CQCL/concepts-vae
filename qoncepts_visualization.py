@@ -13,7 +13,11 @@ IMAGE_DIR = 'images/basic_test'
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, 1, return_image_shape=True)
 params = {
     'image_input_shape': image_input_shape,
-    'num_domains':4,
+    'num_domains': 4,
+    'num_qubits_per_domain': 1,
+    'mixed_states': False,
+    'num_encoder_pqc_layers': 1,
+    'num_concept_pqc_layers': 1,
     # NN setup
     'num_layers': 4,    # number of convolutional layers
     'kernel_size': 4,   # the size of the sliding window in CNN
@@ -33,7 +37,7 @@ qoncepts = Qoncepts(params)
 qoncepts.compile()
 sample_input = list(dataset_tf.take(1).as_numpy_iterator())[0]
 qoncepts(sample_input)
-qoncepts.load_weights('saved_models/qoncepts_April_13_17_10.h5')
+qoncepts.load_weights('saved_models/qoncepts_April_14_02_42.h5')
 
 
 
