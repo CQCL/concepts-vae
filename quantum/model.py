@@ -8,6 +8,25 @@ import sympy
 import vae.encoding_dictionary as enc
 
 
+def one_qubit_rotation(qubit, symbols):
+    """
+    Returns Cirq gates that apply a rotation of the bloch sphere about the X,
+    Y and Z axis, specified by the values in `symbols`.
+    """
+    return [cirq.rx(symbols[0])(qubit),
+            cirq.ry(symbols[1])(qubit),
+            cirq.rz(symbols[2])(qubit)]
+
+def entangling_layer(qubits):
+    """
+    Returns a layer of CZ entangling gates on `qubits` (arranged in a circular topology).
+    """
+    if len(qubits)==1:
+        return cirq.Circuit()
+    cz_ops = [cirq.CZ(q0, q1) for q0, q1 in zip(qubits, qubits[1:])]
+    cz_ops += ([cirq.CZ(qubits[0], qubits[-1])] if len(qubits) != 2 else [])
+    return cz_ops
+
 class Qoncepts(keras.Model):
     def __init__(self, params, **kwargs):
         super(Qoncepts, self).__init__(**kwargs)
@@ -15,7 +34,6 @@ class Qoncepts(keras.Model):
         self.model = self.define_model()
         self.model.summary()
         self.loss_tracker = keras.metrics.Mean(name="loss")
-        self.concept_pqcs = ConceptPQCs()
         self.mse = keras.losses.MeanSquaredError(reduction='none')
         self.all_labels = tf.expand_dims(tf.repeat(
             tf.expand_dims(tf.range(self.concept_pqcs.max_concepts, dtype=tf.float32), axis=0), 
@@ -28,12 +46,13 @@ class Qoncepts(keras.Model):
         return self.params
 
     def define_model(self):
-        image_input = keras.Input(shape=self.params['image_input_shape'])
-        concept_PQCs_params = keras.Input(shape=(self.params['num_domains']*3))
-        # create CNN layers
-        encoder_cnn = self.define_cnn(image_input)
         # create pqc layers
-        controlled_pqc = self.define_pqc()
+        controlled_pqc, num_encoder_symbols, num_concept_symbols = self.define_pqc()
+        self.concept_pqcs = ConceptPQCs(num_concept_symbols // self.params['num_domains'])
+        concept_PQCs_params = keras.Input(shape=(num_concept_symbols,))
+        image_input = keras.Input(shape=self.params['image_input_shape'])
+        # create CNN layers
+        encoder_cnn = self.define_cnn(image_input, num_encoder_symbols)
         # input 0 state to the pqc
         circuits_input =  tfq.convert_to_tensor([cirq.Circuit()])
         # repeat the input for the number of samples in batch
@@ -45,44 +64,57 @@ class Qoncepts(keras.Model):
         return model
 
     def define_pqc(self):
-        # one qubit for each domain
-        qubits = [cirq.GridQubit(i, 0) for i in range(self.params['num_domains'])]
-        # Parameters that the classical NN will feed values into. Three parameters for each domain (qubit).
-        control_params = sympy.symbols(['x{0:03d}'.format(i) for i in range(self.params['num_domains']*3)])
-        pqc = cirq.Circuit([
-            (
-                cirq.rx(control_params[i*3])(qubits[i]), 
-                cirq.ry(control_params[i*3+1])(qubits[i]),
-                cirq.rz(control_params[i*3+2])(qubits[i])
-            )
-            for i in range(self.params['num_domains'])
-        ])
-        concept_params = sympy.symbols(['y{0:03d}'.format(i) for i in range(self.params['num_domains']*3)])
-        concept_pqc = cirq.Circuit([
-            (
-                cirq.rz(concept_params[i*3])(qubits[i]), 
-                cirq.ry(concept_params[i*3+1])(qubits[i]),
-                cirq.rx(concept_params[i*3+2])(qubits[i])
-            ) for i in range(self.params['num_domains'])
-        ])
-        pqc.append(concept_pqc)
-        measurement_operators = [cirq.Z(qubits[i]) for i in range(self.params['num_domains'])]
+        if self.params['mixed_states']:
+            num_total_qubits = 2 * self.params['num_domains'] * self.params['num_qubits_per_domain']
+            all_qubits = [cirq.GridQubit(i, 0) for i in range(num_total_qubits)]
+            qubits = all_qubits[::2] # half normal qubits, half mixture qubits
+        else:
+            num_total_qubits = self.params['num_domains'] * self.params['num_qubits_per_domain']
+            all_qubits = [cirq.GridQubit(i, 0) for i in range(num_total_qubits)]
+            qubits = all_qubits
+        # Parameters that the classical NN will feed values into
+        num_encoder_symbols = 3 * len(qubits) * self.params['num_encoder_pqc_layers']
+        control_params = sympy.symbols(['x{0:03d}'.format(i) for i in range(num_encoder_symbols)])
+        # Define circuit
+        pqc = cirq.Circuit()
+        for layer in range(self.params['num_encoder_pqc_layers']):
+            for i, q in enumerate(qubits):
+                offset = (i * self.params['num_encoder_pqc_layers'] + layer) * 3
+                pqc += one_qubit_rotation(q, control_params[offset:offset+3])
+            for i in range(self.params['num_domains']):
+                offset = i*self.params['num_qubits_per_domain']
+                pqc += entangling_layer(qubits[offset:offset+self.params['num_qubits_per_domain']])
+        num_concept_symbols = 3 * len(all_qubits) * self.params['num_concept_pqc_layers']
+        concept_params = sympy.symbols(['y{0:03d}'.format(i) for i in range(num_concept_symbols)])
+        for layer in range(self.params['num_concept_pqc_layers']):
+            for i, q in enumerate(all_qubits):
+                offset = (i * self.params['num_concept_pqc_layers'] + layer) * 3
+                pqc += one_qubit_rotation(q, concept_params[offset:offset+3])
+            for i in range(self.params['num_domains']):
+                if self.params['mixed_states']:
+                    start = 2 * i * self.params['num_qubits_per_domain']
+                    end = start + 2 * self.params['num_qubits_per_domain']
+                else:
+                    start = i * self.params['num_qubits_per_domain']
+                    end = start + self.params['num_qubits_per_domain']
+                pqc += entangling_layer(all_qubits[start:end])
+        measurement_operators = [cirq.Z(qubits[i]) for i in range(len(qubits))]
         # TFQ layer for classically controlled circuits.
         controlled_pqc = tfq.layers.ControlledPQC(
             pqc,
             operators=measurement_operators
         )
         print(pqc)
-        return controlled_pqc
+        return controlled_pqc, num_encoder_symbols, num_concept_symbols
 
-    def define_cnn(self, image_input):
+    def define_cnn(self, image_input, num_outputs):
         encoder_cnn = image_input
         for _ in range(self.params['num_layers']):
             encoder_cnn = keras.layers.Conv2D(64, self.params['kernel_size'], activation="relu", 
                 strides=self.params['num_strides'], padding="same")(encoder_cnn)
         encoder_cnn = keras.layers.Flatten()(encoder_cnn)
         encoder_cnn = keras.layers.Dense(256, activation="relu")(encoder_cnn)
-        encoder_cnn = keras.layers.Dense(self.params['num_domains']*3, activation="relu")(encoder_cnn)
+        encoder_cnn = keras.layers.Dense(num_outputs, activation="relu")(encoder_cnn)
         return encoder_cnn
 
     @property
@@ -95,7 +127,10 @@ class Qoncepts(keras.Model):
     def call(self, images_and_labels):
         concept_PQCs_params = self.concept_pqcs(images_and_labels[1])
         #flatten the tensor
-        concept_PQCs_params = tf.reshape(concept_PQCs_params, (-1, self.params['num_domains']*3))
+        concept_PQCs_params = tf.reshape(
+            concept_PQCs_params, 
+            (-1, concept_PQCs_params.shape[1]*concept_PQCs_params.shape[2])
+        )
         return self.model([images_and_labels[0], concept_PQCs_params])
 
     @tf.function
@@ -133,8 +168,9 @@ class Qoncepts(keras.Model):
 
 
 class ConceptPQCs(keras.layers.Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, params_per_concept, **kwargs):
         super(ConceptPQCs, self).__init__(**kwargs)
+        self.params_per_concept = params_per_concept
         # the max number of different values for different domains
         self.max_concepts = max([len(enc.enc_dict[concept]) 
             for concept in enc.concept_domains]) - 1 # -1 because of the 'ANY' concept
@@ -144,7 +180,7 @@ class ConceptPQCs(keras.layers.Layer):
         # Create a trainable weight variable for this layer.
         self.pqc_params = self.add_weight(
             name="pqc_params",
-            shape=(len(enc.concept_domains), self.max_concepts, 3), # 3 is for 3 rotations
+            shape=(len(enc.concept_domains), self.max_concepts, self.params_per_concept),
             trainable=True
         )
         super(ConceptPQCs, self).build(input_shape)

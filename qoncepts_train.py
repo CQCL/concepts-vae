@@ -29,7 +29,11 @@ dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_ima
 
 params = {
     'image_input_shape': image_input_shape,
-    'num_domains':4,
+    'num_domains': 4,
+    'num_qubits_per_domain': 1,
+    'mixed_states': True,
+    'num_encoder_pqc_layers': 1,
+    'num_concept_pqc_layers': 2,
     # NN setup
     'num_layers': 4,    # number of convolutional layers
     'kernel_size': 4,   # the size of the sliding window in CNN
