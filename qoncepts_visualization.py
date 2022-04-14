@@ -3,8 +3,7 @@ import qutip
 from scipy.spatial.transform import Rotation as R
 import tensorflow as tf
 
-from quantum.model import load_saved_model
-from vae.data_generator import get_tf_dataset
+from quantum.utils import load_saved_model
 import vae.encoding_dictionary as enc
 
 

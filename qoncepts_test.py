@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.metrics import classification_report, confusion_matrix
-from quantum.model import Qoncepts, load_saved_model
+from quantum.utils import load_saved_model
 
 from vae.data_generator import ImageGenerator, get_tf_dataset
 from vae.utils import encode_or_decode
