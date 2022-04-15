@@ -35,6 +35,18 @@ class ImageGenerator(keras.utils.Sequence) :
                 batch_labels[i][j] = enc.enc_dict[concept][keywords[j+1]]
         return [batch_images, batch_labels]
 
+def get_tf_dataset_from_generator(data_generator, output_signature, num_images, batch_size=16):
+    dataset_tf = tf.data.Dataset.from_generator(
+        data_generator,
+        output_signature=output_signature
+    )
+    # shuffle, batch and optimize the data
+    dataset_tf = dataset_tf.shuffle(buffer_size=num_images)
+    dataset_tf = dataset_tf.batch(batch_size)
+    dataset_tf = dataset_tf.cache()
+    dataset_tf = dataset_tf.prefetch(tf.data.AUTOTUNE)
+    return dataset_tf
+
 
 def get_tf_dataset(image_dir, batch_size=16, return_image_shape=False, include_labels=True):
     # create a generator for the training data
@@ -61,23 +73,20 @@ def get_tf_dataset(image_dir, batch_size=16, return_image_shape=False, include_l
                 yield tf.convert_to_tensor(img_data)
 
     if include_labels:
-        dataset_tf = tf.data.Dataset.from_generator(
-            data_generator,
             output_signature=(
                 tf.TensorSpec(shape=image_shape, dtype=tf.float32),
                 tf.TensorSpec(shape=(len(enc.concept_domains),), dtype=tf.float32)
             )
-        )
     else:
-        dataset_tf = tf.data.Dataset.from_generator(
-            data_generator,
             output_signature=(tf.TensorSpec(shape=image_shape, dtype=tf.float32))
+
+    dataset_tf = get_tf_dataset_from_generator(
+        data_generator,
+        output_signature=output_signature,
+        num_images=len(image_files),
+        batch_size=batch_size
         )
-    # shuffle, batch and optimize the data
-    dataset_tf = dataset_tf.shuffle(buffer_size=len(image_files))
-    dataset_tf = dataset_tf.batch(batch_size)
-    dataset_tf = dataset_tf.cache()
-    dataset_tf = dataset_tf.prefetch(tf.data.AUTOTUNE)
     if return_image_shape:
         return dataset_tf, image_shape
     return dataset_tf
+
