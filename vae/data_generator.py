@@ -73,20 +73,47 @@ def get_tf_dataset(image_dir, batch_size=16, return_image_shape=False, include_l
                 yield tf.convert_to_tensor(img_data)
 
     if include_labels:
-            output_signature=(
-                tf.TensorSpec(shape=image_shape, dtype=tf.float32),
-                tf.TensorSpec(shape=(len(enc.concept_domains),), dtype=tf.float32)
-            )
+        output_signature=(
+            tf.TensorSpec(shape=image_shape, dtype=tf.float32),
+            tf.TensorSpec(shape=(len(enc.concept_domains),), dtype=tf.float32)
+        )
     else:
-            output_signature=(tf.TensorSpec(shape=image_shape, dtype=tf.float32))
+        output_signature=(tf.TensorSpec(shape=image_shape, dtype=tf.float32))
 
     dataset_tf = get_tf_dataset_from_generator(
         data_generator,
         output_signature=output_signature,
         num_images=len(image_files),
         batch_size=batch_size
-        )
+    )
     if return_image_shape:
         return dataset_tf, image_shape
     return dataset_tf
 
+def create_data_generator_with_classification_condition(image_dir, condition):
+    # create a generator for the training data
+    image_files = []
+    for root_path, _, files in os.walk(image_dir):
+        for f in files:
+            image_files.append(os.path.join(root_path, f))
+
+    img_data = np.asarray(PIL.Image.open(image_files[0]), dtype=np.float32)
+    img_height = img_data.shape[0]
+    img_width = img_data.shape[1]
+    num_channels = img_data.shape[2]
+    image_shape = (img_height, img_width, num_channels)
+    num_images = len(image_files)
+
+    def data_generator():
+        for file_path in image_files:
+            img_data = np.asarray(PIL.Image.open(file_path), dtype=np.float32) / 255.0
+            file_name = os.path.splitext(os.path.split(file_path)[1])[0]
+            keywords = file_name.split('_')
+            classification = condition(keywords)
+            yield tf.convert_to_tensor(img_data), tf.convert_to_tensor(classification)
+    output_signature=(
+            tf.TensorSpec(shape=image_shape, dtype=tf.float32),
+            tf.TensorSpec(shape=(), dtype=tf.float32)
+        )
+    return data_generator, output_signature, num_images
+    
