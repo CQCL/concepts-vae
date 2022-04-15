@@ -28,14 +28,13 @@ NUM_EPOCHS=200
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
 
 params = {
-    'image_input_shape': image_input_shape,
+    'input_shape': [image_input_shape, (4,)], # 4 labels
     'num_domains': 4,
     'num_qubits_per_domain': 1,
-    'mixed_states': True,
+    'mixed_states': False,
     'num_encoder_pqc_layers': 1,
-    'num_concept_pqc_layers': 2,
-    # NN setup
-    'num_layers': 4,    # number of convolutional layers
+    'num_concept_pqc_layers': 1,
+    'num_cnn_layers': 4,    # number of convolutional layers
     'kernel_size': 4,   # the size of the sliding window in CNN
     'num_strides': 2,   # the size of the step for which the sliding window is moved in CNN
 }

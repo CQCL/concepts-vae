@@ -21,7 +21,7 @@ qoncepts = load_saved_model('saved_models/qoncepts_April_14_16_24')
 for i, domain in enumerate(enc.concept_domains):
     b = qutip.Bloch()
     for j in range(len(enc.enc_dict[domain])-1):
-        rotation_vector = qoncepts.concept_pqcs.pqc_params[i][j]
+        rotation_vector = qoncepts.concept_params.concept_params[i][j]
         vec = rotate_zero_state(rotation_vector)
         b.add_vectors(vec)
         b.add_annotation(vec, enc.dec_dict[domain][j])
