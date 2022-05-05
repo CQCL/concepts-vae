@@ -56,7 +56,7 @@ num_images = 100 # number of images to classify
 qoncepts_prediction_labels = []
 truth_labels = []
 for i in range(num_images):
-    print("Classifying image " + str(i) + " of " + str(num_images), end='\r')
+    print("Classifying image " + str(i+1) + " of " + str(num_images), end='\r')
     truth_labels.append(encode_or_decode(data_it[i][1][0]))
     qoncepts_prediction_labels.append(qoncepts_classifier(data_it[i][0][0], qoncepts))
 print('\n')
