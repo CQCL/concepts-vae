@@ -16,7 +16,8 @@ def rotate_zero_state(rotation_vector=np.array([0, 0, 0])):
     return rotate(np.array([0, 0, 1]), rotation_vector)
 
 
-qoncepts = load_saved_model('saved_models/qoncepts_April_14_16_24')
+IMAGE_DIR = 'images/basic_train'
+qoncepts = load_saved_model('saved_models/qoncepts_April_14_16_24', image_dir=IMAGE_DIR)
 
 for i, domain in enumerate(enc.concept_domains):
     b = qutip.Bloch()

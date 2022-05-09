@@ -50,7 +50,7 @@ def print_results(result, title, concept_names=CONCEPT_NAMES):
 
 data_it = ImageGenerator(IMAGE_DIR, batch_size=1)
 
-qoncepts = load_saved_model('saved_models/qoncepts_April_14_16_24')
+qoncepts = load_saved_model('saved_models/qoncepts_April_14_16_24', image_dir=IMAGE_DIR)
 
 num_images = 100 # number of images to classify
 qoncepts_prediction_labels = []

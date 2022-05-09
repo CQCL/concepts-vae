@@ -1,4 +1,5 @@
 import json
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow_probability import distributions as tfd
@@ -140,6 +141,7 @@ class Qoncepts(keras.Model):
         with tf.GradientTape() as tape:
             loss = self.compute_loss(images_and_labels)
         grads = tape.gradient(loss, self.trainable_weights)
+        tf.print(self.concept_params.trainable_weights)
 
         self.optimizer.apply_gradients((grad, weights)
             for (grad, weights) in zip(grads, self.trainable_weights)
@@ -192,7 +194,8 @@ class ConceptParameters(keras.layers.Layer):
         self.concept_params = self.add_weight(
             name="concept_params",
             shape=(len(enc.concept_domains), self.max_concepts, self.params_per_concept),
-            trainable=True
+            trainable=True,
+            initializer=tf.keras.initializers.RandomUniform(0, 2*np.pi)
         )
         super(ConceptParameters, self).build(input_shape)
 

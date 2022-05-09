@@ -33,8 +33,8 @@ CONCEPT_DOMAINS = [0, 2] # 0 for colour, 2 for shape
 NUM_IMAGES = 300 # number of images to classify
 
 data_it = ImageGenerator(IMAGE_DIR, batch_size=1)
-learned_qoncept_file = 'saved_models/learned_concept_May_05_20_57'
-qoncepts = load_saved_model(QONCEPTS_MODEL)
+learned_qoncept_file = 'saved_models/learned_concept_May_05_22_08'
+qoncepts = load_saved_model(QONCEPTS_MODEL, image_dir=IMAGE_DIR)
 learned_qoncept = load_learned_concept(learned_qoncept_file, qoncepts=qoncepts, concept_domains=CONCEPT_DOMAINS, num_concept_pqc_layers=3, mixed=False)
 
 def concept_truth(labels):
