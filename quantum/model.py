@@ -19,11 +19,13 @@ class Qoncepts(keras.Model):
         self.model = self.define_model()
         self.model.summary()
         self.loss_tracker = keras.metrics.Mean(name="loss")
-        self.all_labels = tf.expand_dims(tf.repeat(
-            tf.expand_dims(tf.range(self.concept_params.max_concepts, dtype=tf.float32), axis=0), 
-            self.params['num_domains'], 
-            axis=0
-        ), axis=0)
+        assert self.params['num_domains'] == len(enc.concept_domains) # check that the number of domains is correct
+        self.all_labels=[]
+        for domains in enc.concept_domains:
+            num_concepts = len(enc.enc_dict[domains]) - 1
+            self.all_labels.append(
+                tf.expand_dims(tf.range(num_concepts, dtype=tf.float32), axis=0)
+            )
 
     def initialize_qubits(self):
         if self.params['mixed_states']:
@@ -141,7 +143,6 @@ class Qoncepts(keras.Model):
         with tf.GradientTape() as tape:
             loss = self.compute_loss(images_and_labels)
         grads = tape.gradient(loss, self.trainable_weights)
-        tf.print(self.concept_params.trainable_weights)
 
         self.optimizer.apply_gradients((grad, weights)
             for (grad, weights) in zip(grads, self.trainable_weights)
@@ -158,15 +159,18 @@ class Qoncepts(keras.Model):
         pos_expectation = self.call(images_and_labels)
         loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1))
         # negative samples
-        all_labels = tf.repeat(self.all_labels, tf.shape(images_and_labels[1])[0], axis=0)
-        cur_labels = tf.repeat(
-            tf.expand_dims(images_and_labels[1], axis=2),
-            self.concept_params.max_concepts,
-            axis=2
-        )
-        dist = tfd.Categorical(probs=tf.cast(all_labels != cur_labels, tf.float32))
-        samples = dist.sample()
-        neg_expectation = self.call([images_and_labels[0], samples])
+        negative_samples = []
+        for i in range(self.params['num_domains']):
+            current_labels = tf.repeat(
+                tf.expand_dims(images_and_labels[1][:, i], axis=1),
+                self.all_labels[i].shape[1],
+                axis=1
+            )
+            all_domain_labels = tf.repeat(self.all_labels[i], tf.shape(images_and_labels[1])[0], axis=0)
+            dist = tfd.Categorical(probs=tf.cast(current_labels != all_domain_labels, tf.float32))
+            negative_samples.append(dist.sample())
+        neg_expectation = self.call([images_and_labels[0], tf.stack(negative_samples, axis=1)])
+
         loss += tf.reduce_mean(tf.reduce_sum(tf.math.square(-1 - neg_expectation), axis=1))
         return loss
     
