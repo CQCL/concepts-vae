@@ -171,7 +171,7 @@ class Qoncepts(keras.Model):
             negative_samples.append(dist.sample())
         neg_expectation = self.call([images_and_labels[0], tf.stack(negative_samples, axis=1)])
 
-        loss += tf.reduce_mean(tf.reduce_sum(tf.math.square(-1 - neg_expectation), axis=1))
+        loss = loss - tf.reduce_mean(tf.reduce_sum(tf.math.square(1 - neg_expectation), axis=1))
         return loss
     
     def get_config(self):
