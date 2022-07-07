@@ -8,6 +8,7 @@ import tensorflow_quantum as tfq
 import cirq
 import sympy
 from quantum.circuit_creation import entangling_layer, one_qubit_rotation
+from quantum.utils import create_zeros_measurement_operator
 import vae.encoding_dictionary as enc
 
 
@@ -125,7 +126,13 @@ class Qoncepts(keras.Model):
                     start = i * self.params['num_qubits_per_domain']
                     end = start + self.params['num_qubits_per_domain']
                 pqc += entangling_layer(self.all_qubits[start:end])
-        measurement_operators = [cirq.Z(self.qubits[i]) for i in range(len(self.qubits))]
+        measurement_operators = []
+        for i in range(self.params['num_domains']):
+            start = i * self.params['num_qubits_per_domain']
+            end = start + self.params['num_qubits_per_domain']
+            measurement_operators.append(
+                create_zeros_measurement_operator(self.qubits[start:end])
+            )
         return pqc, measurement_operators, num_concept_symbols
 
     @property
@@ -171,7 +178,7 @@ class Qoncepts(keras.Model):
             negative_samples.append(dist.sample())
         neg_expectation = self.call([images_and_labels[0], tf.stack(negative_samples, axis=1)])
 
-        loss = loss - tf.reduce_mean(tf.reduce_sum(tf.math.square(1 - neg_expectation), axis=1))
+        loss = loss + tf.reduce_mean(tf.reduce_sum(tf.math.square(-1 - neg_expectation), axis=1))
         return loss
     
     def get_config(self):

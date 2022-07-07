@@ -30,7 +30,7 @@ dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_ima
 params = {
     'input_shape': [image_input_shape, (4,)], # 4 labels
     'num_domains': 4,
-    'num_qubits_per_domain': 1,
+    'num_qubits_per_domain': 2,
     'mixed_states': False,
     'num_encoder_pqc_layers': 1,
     'num_concept_pqc_layers': 1,

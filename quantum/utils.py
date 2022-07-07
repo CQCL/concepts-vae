@@ -1,3 +1,5 @@
+import cirq
+import itertools
 import json
 
 from quantum.concept_learner import ConceptLearner
@@ -31,3 +33,16 @@ def load_learned_concept(file_name, image_dir='images/basic_train', **kwargs):
     learned_concept.load_weights(file_name + '.h5')
     return learned_concept
 
+def create_zeros_measurement_operator(qubits):
+    all_combinations = list(itertools.product('IZ', repeat=len(qubits)))
+    non_zero_coeff = 2 / len(all_combinations)
+    zero_coeff = 1 - non_zero_coeff
+    pauli_ops = [
+        cirq.DensePauliString(combination, coefficient=non_zero_coeff).on(*qubits)
+        for combination in all_combinations[1:]
+    ]
+    pauli_ops.append(
+        cirq.DensePauliString(all_combinations[0], coefficient=zero_coeff).on(*qubits)
+    )
+    measurement_operator = cirq.PauliSum.from_pauli_strings(pauli_ops)
+    return measurement_operator
