@@ -2,8 +2,6 @@ import cirq
 import itertools
 import json
 
-from quantum.concept_learner import ConceptLearner
-from quantum.model import Qoncepts
 from vae.data_generator import get_tf_dataset
 
 
@@ -14,6 +12,7 @@ def load_saved_model(file_name, image_dir='images/basic_train'):
     with open(file_name + '_params.json', 'r') as f:
         params = json.load(f)
     dataset_tf = get_tf_dataset(image_dir, 1, return_image_shape=False)
+    from quantum.model import Qoncepts
     qoncepts = Qoncepts(params)
     qoncepts.compile()
     sample_input = list(dataset_tf.take(1).as_numpy_iterator())[0]
@@ -26,6 +25,7 @@ def load_learned_concept(file_name, image_dir='images/basic_train', **kwargs):
     Loads a learned concepts from the file `file_name`.
     """
     dataset_tf = get_tf_dataset(image_dir, 1, return_image_shape=False)
+    from quantum.concept_learner import ConceptLearner
     learned_concept = ConceptLearner(**kwargs)
     learned_concept.compile()
     sample_input = list(dataset_tf.take(1).as_numpy_iterator())[0]
