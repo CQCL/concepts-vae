@@ -32,8 +32,8 @@ params = {
     'num_domains': 4,
     'num_qubits_per_domain': 2,
     'mixed_states': False,
-    'num_encoder_pqc_layers': 1,
-    'num_concept_pqc_layers': 1,
+    'num_encoder_pqc_layers': 2,
+    'num_concept_pqc_layers': 2,
     'num_cnn_layers': 4,    # number of convolutional layers
     'kernel_size': 4,   # the size of the sliding window in CNN
     'num_strides': 2,   # the size of the step for which the sliding window is moved in CNN

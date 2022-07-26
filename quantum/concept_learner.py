@@ -6,6 +6,7 @@ import tensorflow_quantum as tfq
 from tensorflow import keras
 
 from quantum.circuit_creation import entangling_layer, one_qubit_rotation
+from quantum.utils import create_zeros_measurement_operator
 
 
 class ConceptLearner(keras.Model):
@@ -19,7 +20,7 @@ class ConceptLearner(keras.Model):
             self.num_concept_pqc_layers = num_concept_pqc_layers
         self.mixed = mixed
         self.loss_tracker = keras.metrics.Mean(name="loss")
-        self.concept_pqc, self.measurement_operators, self.concept_params = self.define_concept_pqc()
+        self.concept_pqc, self.measurement_operator, self.concept_params = self.define_concept_pqc()
         self.concept_learner_model = self.define_concept_learner_model()
         self.concept_learner_model.summary()
         
@@ -49,14 +50,14 @@ class ConceptLearner(keras.Model):
                 offset = (i * self.num_concept_pqc_layers + layer) * 3
                 pqc += one_qubit_rotation(qubit, concept_params[offset:offset+3])
             pqc += entangling_layer(all_concept_qubits)
-        measurement_operators = [cirq.Z(qubit) for i in concept_qubits]
+        measurement_operator = create_zeros_measurement_operator(concept_qubits)
         concept_params_weights = self.add_weight(
             name="concept_params",
             shape=(1, num_concept_symbols),
             trainable=True,
             initializer=keras.initializers.RandomUniform(minval=0., maxval=2 * np.pi)
         )
-        return pqc, measurement_operators, concept_params_weights
+        return pqc, measurement_operator, concept_params_weights
 
     def define_concept_learner_model(self):
         """
@@ -69,7 +70,7 @@ class ConceptLearner(keras.Model):
         pqc = self.qoncepts.encoder_pqc + self.concept_pqc
         controlled_pqc = tfq.layers.ControlledPQC(
             pqc,
-            operators=self.measurement_operators
+            operators=self.measurement_operator
         )
         # input 0 state to the pqc
         circuits_input =  tfq.convert_to_tensor([cirq.Circuit()])
@@ -110,15 +111,9 @@ class ConceptLearner(keras.Model):
     @tf.function
     def compute_loss(self, images_and_true_classifications):
         images, true_classifications = images_and_true_classifications
-        true_expectations = tf.repeat(
-            tf.expand_dims(true_classifications, axis=1),
-            len(self.concept_domains),
-            axis=1
-        )
-        expectation = self.call(images)
-        loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(true_expectations - expectation), axis=1))
+        expectation = tf.squeeze(self.call(images))
+        loss = tf.reduce_mean(tf.math.square(true_classifications - expectation))
         return loss
-
 
     def save_model(self, file_name):
         self.save_weights(file_name + '.h5')
