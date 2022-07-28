@@ -36,7 +36,7 @@ def load_learned_concept(file_name, image_dir='images/basic_train', **kwargs):
 def create_zeros_measurement_operator(qubits):
     all_combinations = list(itertools.product('IZ', repeat=len(qubits)))
     non_zero_coeff = 2 / len(all_combinations)
-    zero_coeff = 1 - non_zero_coeff
+    zero_coeff = non_zero_coeff - 1
     pauli_ops = [
         cirq.DensePauliString(combination, coefficient=non_zero_coeff).on(*qubits)
         for combination in all_combinations[1:]
