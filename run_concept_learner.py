@@ -49,6 +49,8 @@ concept_learner.compile(optimizer=tf.keras.optimizers.Adam())
 
 concept_learner.fit(dataset_tf, epochs=NUM_EPOCHS)
 
+print('Expectation scaling factor: ', concept_learner.scale_factor.numpy()[0])
+
 # saving weights for the current trained model with a time stamp
 file_name = os.path.join(
     'saved_models',

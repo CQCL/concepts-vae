@@ -81,8 +81,12 @@ class ConceptLearner(keras.Model):
         control_params = tf.concat([encoder_cnn_output, concept_params_batch], axis=1)
         expectation = controlled_pqc([circuits_input, control_params])
         # scale the expectation by a learned parameter
-        scale_factor = tf.Variable(1., trainable=True, name="expectation_scaling_factor")
-        scaled_expectation = scale_factor * expectation
+        self.scale_factor = self.add_weight(name="expectation_scaling_factor",
+            shape=(1,),
+            initializer=tf.keras.initializers.Ones(),
+            trainable=True
+        )
+        scaled_expectation = self.scale_factor * expectation
         model = keras.Model(inputs=([image_input]), outputs=scaled_expectation)
         return model
 
