@@ -24,7 +24,7 @@ sess = tf.compat.v1.Session(config=config)
 
 IMAGE_DIR='images/basic_train/'   # location of dataset images
 BATCH_SIZE=32
-NUM_EPOCHS=100
+NUM_EPOCHS=25
 QONCEPTS_MODEL='saved_models/qoncepts_April_15_01_13'
 CONCEPT_DOMAINS = [0, 2] # 0 for colour, 2 for shape
 

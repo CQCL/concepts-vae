@@ -7,7 +7,7 @@ import tensorflow_quantum as tfq
 
 import cirq
 import sympy
-from quantum.circuit_creation import entangling_layer, one_qubit_rotation
+from quantum.circuit_creation import entangling_layer, one_qubit_rotation, one_qubit_rotation_rev
 from quantum.utils import create_zeros_measurement_operator
 import vae.encoding_dictionary as enc
 
@@ -117,7 +117,7 @@ class Qoncepts(keras.Model):
         for layer in range(self.params['num_concept_pqc_layers']):
             for i, qubit in enumerate(self.all_qubits):
                 offset = (i * self.params['num_concept_pqc_layers'] + layer) * 3
-                pqc += one_qubit_rotation(qubit, concept_params[offset:offset+3])
+                pqc += one_qubit_rotation_rev(qubit, concept_params[offset:offset+3])
             for i in range(self.params['num_domains']):
                 if self.params['mixed_states']:
                     start = 2 * i * self.params['num_qubits_per_domain']
@@ -164,7 +164,7 @@ class Qoncepts(keras.Model):
     def compute_loss(self, images_and_labels):
         # positive samples
         pos_expectation = self.call(images_and_labels)
-        loss = tf.reduce_mean(tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1))
+        loss = tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1)
         # negative samples
         negative_samples = []
         for i in range(self.params['num_domains']):
@@ -178,8 +178,8 @@ class Qoncepts(keras.Model):
             negative_samples.append(dist.sample())
         neg_expectation = self.call([images_and_labels[0], tf.stack(negative_samples, axis=1)])
 
-        loss = loss + tf.reduce_mean(tf.reduce_sum(tf.math.square(-1 - neg_expectation), axis=1))
-        return loss
+        loss = loss + tf.reduce_sum(tf.math.square(-1 - neg_expectation), axis=1)
+        return tf.reduce_mean(loss)
     
     def get_config(self):
         # returns parameters with which the model was instanciated
@@ -206,7 +206,7 @@ class ConceptParameters(keras.layers.Layer):
             name="concept_params",
             shape=(len(enc.concept_domains), self.max_concepts, self.params_per_concept),
             trainable=True,
-            initializer=tf.keras.initializers.RandomUniform(0, 2*np.pi)
+            initializer=tf.keras.initializers.RandomUniform(0, 1)
         )
         super(ConceptParameters, self).build(input_shape)
 

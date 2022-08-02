@@ -9,6 +9,15 @@ def one_qubit_rotation(qubit, symbols):
             cirq.ry(symbols[1])(qubit),
             cirq.rz(symbols[2])(qubit)]
 
+def one_qubit_rotation_rev(qubit, symbols):
+    """
+    Returns Cirq gates that apply a rotation of the bloch sphere about the X,
+    Y and Z axis, specified by the values in `symbols`.
+    """
+    return [cirq.rz(symbols[0])(qubit),
+            cirq.ry(symbols[1])(qubit),
+            cirq.rx(symbols[2])(qubit)]
+
 def entangling_layer(qubits):
     """
     Returns a layer of CZ entangling gates on `qubits` (arranged in a circular topology).
