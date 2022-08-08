@@ -1,7 +1,7 @@
 import cirq
-import itertools
 import json
 
+from functools import reduce
 from vae.data_generator import get_tf_dataset
 
 
@@ -34,15 +34,10 @@ def load_learned_concept(file_name, image_dir='images/basic_train', **kwargs):
     return learned_concept
 
 def create_zeros_measurement_operator(qubits):
-    all_combinations = list(itertools.product('IZ', repeat=len(qubits)))
-    non_zero_coeff = 2 / len(all_combinations)
-    zero_coeff = non_zero_coeff - 1
-    pauli_ops = [
-        cirq.DensePauliString(combination, coefficient=non_zero_coeff).on(*qubits)
-        for combination in all_combinations[1:]
-    ]
-    pauli_ops.append(
-        cirq.DensePauliString(all_combinations[0], coefficient=zero_coeff).on(*qubits)
-    )
-    measurement_operator = cirq.PauliSum.from_pauli_strings(pauli_ops)
-    return measurement_operator
+    I_plus_Z_by_2 = []
+    for q in qubits:
+        I = cirq.PauliString(cirq.I(q), coefficient=0.5)
+        Z = cirq.PauliString(cirq.Z(q), coefficient=0.5)
+        I_plus_Z_by_2.append(cirq.PauliSum.from_pauli_strings([I, Z]))
+    I_plus_Z_by_2_tensored = reduce(cirq.mul, I_plus_Z_by_2)
+    return I_plus_Z_by_2_tensored

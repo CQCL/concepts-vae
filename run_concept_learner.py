@@ -34,7 +34,7 @@ def condition(labels):
     elif 'blue' in labels and 'circle' in labels:
         classification = 1
     else:
-        classification = -1
+        classification = 0
     return classification
 
 data_gen, output_signature, num_images = create_data_generator_with_classification_condition(IMAGE_DIR, condition)

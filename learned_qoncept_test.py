@@ -20,7 +20,7 @@ def learned_qoncepts_test(image, model):
     image = np.expand_dims(image, axis=0)
     expectation = model.call(image)
     true_expectation = np.ones_like(expectation)
-    false_expectation = -np.ones_like(expectation)
+    false_expectation = np.zeros_like(expectation)
     if np.linalg.norm(true_expectation - expectation) < np.linalg.norm(false_expectation - expectation):
         return True
     else:
