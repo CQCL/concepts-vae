@@ -27,6 +27,9 @@ BATCH_SIZE=32
 NUM_EPOCHS=25
 QONCEPTS_MODEL='saved_models/qoncepts_April_15_01_13'
 CONCEPT_DOMAINS = [0, 2] # 0 for colour, 2 for shape
+NUM_CONCEPT_PQC_LAYERS = 2
+MIXED = False
+
 
 def condition(labels):
     if 'red' in labels and 'square' in labels:
@@ -42,7 +45,7 @@ dataset_tf = get_tf_dataset_from_generator(data_gen, output_signature, num_image
 
 qoncepts = load_saved_model(QONCEPTS_MODEL, image_dir=IMAGE_DIR)
 
-concept_learner = ConceptLearner(qoncepts, CONCEPT_DOMAINS, num_concept_pqc_layers=3, mixed=False)
+concept_learner = ConceptLearner(qoncepts, CONCEPT_DOMAINS, NUM_CONCEPT_PQC_LAYERS, MIXED)
 
 # concept_learner.compile(optimizer=tf.keras.optimizers.Adam(), run_eagerly=True)  # to run step-by-step
 concept_learner.compile(optimizer=tf.keras.optimizers.Adam())

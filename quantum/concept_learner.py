@@ -31,6 +31,8 @@ class ConceptLearner(keras.Model):
         """
         qubits_per_domain = self.qoncepts.params['num_qubits_per_domain']
         num_concept_symbols = 3 * qubits_per_domain * len(self.concept_domains) * self.num_concept_pqc_layers
+        if self.mixed:
+            num_concept_symbols = num_concept_symbols * 2
         concept_params = sympy.symbols(['y{0:03d}'.format(i) for i in range(num_concept_symbols)])
         concept_qubits = []
         for domain in self.concept_domains:
@@ -38,7 +40,7 @@ class ConceptLearner(keras.Model):
             qubits = self.qoncepts.qubits[offset:offset + qubits_per_domain]
             concept_qubits.extend(qubits)
         if self.mixed:
-            mixture_qubits = [cirq.GridQubit(len(self.qoncepts.all_qubits) + i, 0)\
+            mixture_qubits = [cirq.GridQubit(len(self.qoncepts.qubits) + i, 0)\
                 for i in range(len(concept_qubits))]
         else:
             mixture_qubits = []
@@ -50,7 +52,10 @@ class ConceptLearner(keras.Model):
                 offset = (i * self.num_concept_pqc_layers + layer) * 3
                 pqc += one_qubit_rotation(qubit, concept_params[offset:offset+3])
             pqc += entangling_layer(all_concept_qubits)
-        measurement_operator = create_zeros_measurement_operator(concept_qubits)
+        if self.mixed:
+            measurement_operator = create_zeros_measurement_operator(mixture_qubits)
+        else:
+            measurement_operator = create_zeros_measurement_operator(concept_qubits)
         concept_params_weights = self.add_weight(
             name="concept_params",
             shape=(1, num_concept_symbols),
@@ -68,6 +73,7 @@ class ConceptLearner(keras.Model):
         for layer in self.qoncepts.encoder_cnn.layers:
             layer.trainable = False
         pqc = self.qoncepts.encoder_pqc + self.concept_pqc
+        print(pqc)
         controlled_pqc = tfq.layers.ControlledPQC(
             pqc,
             operators=self.measurement_operator

@@ -31,11 +31,19 @@ IMAGE_DIR = 'images/basic_test'
 QONCEPTS_MODEL='saved_models/qoncepts_April_15_01_13'
 CONCEPT_DOMAINS = [0, 2] # 0 for colour, 2 for shape
 NUM_IMAGES = 300 # number of images to classify
+NUM_CONCEPT_PQC_LAYERS = 2
+MIXED = False
 
 data_it = ImageGenerator(IMAGE_DIR, batch_size=1)
 learned_qoncept_file = 'saved_models/learned_concept_May_05_22_08'
 qoncepts = load_saved_model(QONCEPTS_MODEL, image_dir=IMAGE_DIR)
-learned_qoncept = load_learned_concept(learned_qoncept_file, qoncepts=qoncepts, concept_domains=CONCEPT_DOMAINS, num_concept_pqc_layers=3, mixed=False)
+learned_qoncept = load_learned_concept(
+    learned_qoncept_file,
+    qoncepts=qoncepts,
+    concept_domains=CONCEPT_DOMAINS,
+    num_concept_pqc_layers=NUM_CONCEPT_PQC_LAYERS,
+    mixed=MIXED
+)
 
 def concept_truth(labels):
     if 'red' in labels and 'square' in labels:
