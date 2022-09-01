@@ -41,3 +41,26 @@ def create_zeros_measurement_operator(qubits):
         I_plus_Z_by_2.append(cirq.PauliSum.from_pauli_strings([I, Z]))
     I_plus_Z_by_2_tensored = reduce(cirq.mul, I_plus_Z_by_2)
     return I_plus_Z_by_2_tensored
+
+def create_state_measurement_operator(qubits, which_state):
+    meas_opts = []
+    for i in range(len(which_state)):
+        I = cirq.PauliString(cirq.I(qubits[i]), coefficient=0.5)
+        Z = cirq.PauliString(cirq.Z(qubits[i]), coefficient=0.5)
+        minus_Z = cirq.PauliString(cirq.Z(qubits[i]), coefficient=-0.5)
+        if which_state[i] == '0':
+            I_plus_Z_by_2 = cirq.PauliSum.from_pauli_strings([I, Z])
+            meas_opts.append(I_plus_Z_by_2)
+        else:
+            I_minus_Z_by_2 = cirq.PauliSum.from_pauli_strings([I, minus_Z])
+            meas_opts.append(I_minus_Z_by_2)
+    return reduce(cirq.mul, meas_opts)
+
+def create_probability_measurement_operators(qubits):
+    measurement_operators = []
+    for i in range(2**len(qubits)):
+        state = bin(i)[2:].zfill(len(qubits))
+        measurement_operators.append(
+            create_state_measurement_operator(qubits, state)
+        )
+    return measurement_operators
