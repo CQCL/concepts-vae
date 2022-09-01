@@ -25,15 +25,16 @@ from spriteworld import constants
 NUM_SPRITES_PER_CLUSTER = 1
 
 
-def get_sprite(colour, size, shape, position):
-    sprite_factors = distribs.Product([
-        constants.COLOURS[colour],
-        constants.SIZE[size],
-        constants.SHAPE[shape],
-        constants.POSITION[position],
-        distribs.Continuous('c1', 0.5, 1.), #saturation
-        distribs.Continuous('c2', 0.9, 1.), #brightness
-    ])
+def get_sprite(colour=None, size=None, shape=None, position=None, sprite_factors=None):
+    if sprite_factors is None:
+        sprite_factors = distribs.Product([
+            constants.COLOURS[colour],
+            constants.SIZE[size],
+            constants.SHAPE[shape],
+            constants.POSITION[position],
+            distribs.Continuous('c1', 0.5, 1.), #saturation
+            distribs.Continuous('c2', 0.9, 1.), #brightness
+        ])
 
     sprite_gen_per_cluster = [
         sprite_generators.generate_sprites(
