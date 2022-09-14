@@ -6,6 +6,9 @@ enc_dict = {
         'blue': 0,
         'green': 1,
         'red': 2,
+        'purered': 3,
+        'pureblue': 4,
+        'puregreen': 5,
     },
 
     'size' : {
@@ -36,6 +39,9 @@ dec_dict = {
         0 : 'blue',
         1 : 'green',
         2 : 'red',
+        3 : 'purered',
+        4 : 'pureblue',
+        5 : 'puregreen',
     },
 
     'size' : {

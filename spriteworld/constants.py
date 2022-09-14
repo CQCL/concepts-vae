@@ -45,7 +45,44 @@ COLOURS = {
     'red': distribs.Mixture([distribs.Continuous('c0', 0.95, 1.), distribs.Continuous('c0',0.,0.05)]),
     'blue': distribs.Continuous('c0', 0.55, 0.65),
     'green': distribs.Continuous('c0', 0.27, 0.37),
-    'yellow': distribs.Continuous('c0', 0.1, 0.2),
+    # 'yellow': distribs.Continuous('c0', 0.1, 0.2),
+    'purered': distribs.Mixture([distribs.Continuous('c0', 0.98, 1.), distribs.Continuous('c0',0.,0.02)]),
+    'pureblue': distribs.Continuous('c0', 0.58, 0.62),
+    'puregreen': distribs.Continuous('c0', 0.30, 0.34),
+    'notred': distribs.Mixture([
+        distribs.Continuous('c0', 0.55, 0.65), # blue
+        distribs.Continuous('c0', 0.27, 0.37), # green
+    ]),
+    'notblue': distribs.Mixture([
+        distribs.Continuous('c0', 0.95, 1.), # red
+        distribs.Continuous('c0', 0., 0.05), # red
+        distribs.Continuous('c0', 0.27, 0.37), # green
+    ]),
+    'notgreen': distribs.Mixture([
+        distribs.Continuous('c0', 0.95, 1.), # red
+        distribs.Continuous('c0', 0., 0.05), # red
+        distribs.Continuous('c0', 0.55, 0.65), # blue
+    ]),
+    'notpurered': distribs.Mixture([
+        distribs.Continuous('c0', 0.95, 0.98), # other red
+        distribs.Continuous('c0', 0.02, 0.05), # other red
+        distribs.Continuous('c0', 0.55, 0.65), # blue
+        distribs.Continuous('c0', 0.27, 0.37), # green
+    ]),
+    'notpureblue': distribs.Mixture([
+        distribs.Continuous('c0', 0.95, 1.), # red
+        distribs.Continuous('c0', 0., 0.05), # red
+        distribs.Continuous('c0', 0.27, 0.37), # green
+        distribs.Continuous('c0', 0.55, 0.58), # other blue
+        distribs.Continuous('c0', 0.62, 0.65), # other blue
+    ]),
+    'notpuregreen': distribs.Mixture([
+        distribs.Continuous('c0', 0.95, 1.), # red
+        distribs.Continuous('c0', 0., 0.05), # red
+        distribs.Continuous('c0', 0.55, 0.65), # blue
+        distribs.Continuous('c0', 0.27, 0.30), # other green
+        distribs.Continuous('c0', 0.34, 0.37), # other green
+    ]),
 }
 
 # DARKNESS = {
