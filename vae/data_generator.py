@@ -9,10 +9,11 @@ from vae.utils import encode_or_decode
 
 class ImageGenerator(keras.utils.Sequence) :
   
-    def __init__(self, image_dir, batch_size) :
+    def __init__(self, image_dir, batch_size, encode_labels = True) :
         self.batch_size = batch_size
         self.image_dir = image_dir
         self.image_files = []
+        self.encode_labels = encode_labels
         for root_path, _, files in os.walk(image_dir):
             for f in files:
                 self.image_files.append(os.path.join(root_path, f))
@@ -27,13 +28,18 @@ class ImageGenerator(keras.utils.Sequence) :
         batch_x = self.image_files[idx * self.batch_size : (idx+1) * self.batch_size]
         batch_images =  np.array([np.asarray(
             PIL.Image.open(file_path), dtype=np.float64) / 255.0 for file_path in batch_x])
-        batch_labels = np.zeros((len(batch_x), len(enc.concept_domains)), dtype=float)
+        keywords = []
         for i, file_path in enumerate(batch_x):
             file_name = os.path.splitext(os.path.split(file_path)[1])[0]
-            keywords = file_name.split('_')
+            keywords.append(file_name.split('_')[1:])
+        if self.encode_labels:
+            batch_labels = np.zeros((len(batch_x), len(enc.concept_domains)), dtype=float)
+            for i, keyword in enumerate(keywords):
             for j, concept in enumerate(enc.concept_domains):
-                batch_labels[i][j] = enc.enc_dict[concept][keywords[j+1]]
+                    batch_labels[i][j] = enc.enc_dict[concept][keyword[j+1]]
         return [batch_images, batch_labels]
+        else:
+            return [batch_images, keywords]
 
 def get_tf_dataset_from_generator(data_generator, output_signature, num_images, batch_size=16):
     dataset_tf = tf.data.Dataset.from_generator(
