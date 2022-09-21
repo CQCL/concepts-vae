@@ -15,12 +15,14 @@ config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
 
+# CONCEPT_NAMES = [['blue', 'red', 'green', 'pureblue', 'purered', 'puregreen'],
 CONCEPT_NAMES = [['blue', 'red', 'green'],
                  ['small', 'medium', 'large'],
                  ['circle', 'square', 'triangle'],
                  ['top', 'centre', 'bottom']]
 
 IMAGE_DIR = 'images/basic_test'
+# IMAGE_DIR = 'images/hierarchy/pos'
 
 
 def qoncepts_classifier(image, model, concept_names=CONCEPT_NAMES):
@@ -34,7 +36,11 @@ def qoncepts_classifier(image, model, concept_names=CONCEPT_NAMES):
     for concept_combination in concept_combinations:
         label = np.expand_dims(encode_or_decode(concept_combination), axis=0)
         label = np.array(label, dtype=np.float32)
-        loss = model.compute_loss((image, label))
+        if model.params['add_decoder']:
+            expectation, _ = model.call([image, label])
+        else:
+            expectation = model.call([image, label])
+        loss = tf.reduce_sum(tf.math.square(1 - expectation), axis=1)
         losses[concept_combination] = loss
     # sort the dictionary by the loss
     losses = sorted(losses.items(), key=lambda x: x[1])

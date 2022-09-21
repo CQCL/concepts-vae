@@ -20,6 +20,7 @@ class Qoncepts(keras.Model):
         self.model = self.define_model()
         self.model.summary()
         self.loss_tracker = keras.metrics.Mean(name="loss")
+        self.mse = tf.keras.losses.MeanSquaredError(reduction='none')
         assert self.params['num_domains'] == len(enc.concept_domains) # check that the number of domains is correct
         self.all_labels=[]
         for domains in enc.concept_domains:
@@ -44,7 +45,9 @@ class Qoncepts(keras.Model):
         label_input = keras.Input(shape=self.params['input_shape'][1])
         self.concept_pqc, self.measurement_operators, num_concept_symbols = self.define_concept_pqc()
         self.encoder_pqc, self.num_encoder_symbols = self.define_encoder_pqc()
-        self.encoder_cnn = self.define_encoder_cnn(self.num_encoder_symbols)
+        self.encoder_cnn, conv_shape = self.define_encoder_cnn(self.num_encoder_symbols)
+        if self.params['add_decoder']:
+            self.decoder_cnn = self.define_decoder_cnn(self.num_encoder_symbols, conv_shape)
         self.concept_params = ConceptParameters(num_concept_symbols // self.params['num_domains'])
         con_params = self.concept_params(label_input)
         con_params = tf.reshape(con_params, (-1, con_params.shape[1]*con_params.shape[2]))  #flatten the tensor
@@ -60,6 +63,9 @@ class Qoncepts(keras.Model):
         encoder_cnn_output = self.encoder_cnn(image_input)
         expectation = controlled_pqc([circuits_input, tf.concat([encoder_cnn_output, con_params], axis=1)])
         model = keras.Model(inputs=([image_input, label_input]), outputs=expectation)
+        if self.params['add_decoder']:
+            reconstructed_image = self.decoder_cnn(encoder_cnn_output)
+            model = keras.Model(inputs=([image_input, label_input]), outputs=[expectation, reconstructed_image])
         return model
 
     def define_concepts(self):
@@ -104,11 +110,39 @@ class Qoncepts(keras.Model):
                 strides=self.params['num_strides'],
                 padding="same"
             )(encoder_cnn)
+            encoder_cnn = keras.layers.Dropout(self.params['convolutional_dropout'])(encoder_cnn)
+        conv_shape = tf.keras.backend.int_shape(encoder_cnn) # Shape of convonlutional layer to be provided to decoder
         encoder_cnn = keras.layers.Flatten()(encoder_cnn)
         encoder_cnn = keras.layers.Dense(256, activation="relu")(encoder_cnn)
+        encoder_cnn = keras.layers.Dropout(self.params['dense_dropout'])(encoder_cnn)
         encoder_cnn = keras.layers.Dense(num_outputs, activation="relu")(encoder_cnn)
         encoder_cnn_model = keras.Model(inputs=image_input, outputs=encoder_cnn)
-        return encoder_cnn_model
+        return encoder_cnn_model, conv_shape
+    
+    def define_decoder_cnn(self, num_inputs, conv_shape):
+        inputs = keras.Input(shape=(num_inputs,))
+        decoder_cnn = keras.layers.Dense(256, activation="relu")(inputs)
+        decoder_cnn = keras.layers.Dropout(self.params['dense_dropout'])(decoder_cnn)
+        decoder_cnn = keras.layers.Dense(conv_shape[1]*conv_shape[2]*conv_shape[3], activation="relu")(decoder_cnn)
+        decoder_cnn = keras.layers.Dropout(self.params['dense_dropout'])(decoder_cnn)
+        decoder_cnn = keras.layers.Reshape((conv_shape[1], conv_shape[2], conv_shape[3]))(decoder_cnn)
+        for _ in range(self.params['num_cnn_layers']):
+            decoder_cnn = keras.layers.Conv2DTranspose(
+                64,
+                self.params['kernel_size'],
+                activation="relu",
+                strides=self.params['num_strides'],
+                padding="same"
+            )(decoder_cnn)
+            decoder_cnn = keras.layers.Dropout(self.params['convolutional_dropout'])(decoder_cnn)
+        decoder_cnn = keras.layers.Conv2DTranspose(
+            3,
+            self.params['kernel_size'],
+            activation="relu",
+            padding="same"
+        )(decoder_cnn)
+        decoder_cnn_model = keras.Model(inputs=inputs, outputs=decoder_cnn, name="decoder")
+        return decoder_cnn_model
 
     def define_concept_pqc(self):
         pqc = cirq.Circuit()
@@ -162,25 +196,37 @@ class Qoncepts(keras.Model):
 
     @tf.function
     def compute_loss(self, images_and_labels):
-        # positive samples
-        pos_expectation = self.call(images_and_labels)
+        negative_labels = self.create_negative_labels(images_and_labels[1])
+        if self.params['add_decoder']:
+            pos_expectation, reconstructed_image = self.call(images_and_labels)
+            neg_expectation, _ = self.call([images_and_labels[0], negative_labels])
+        else:
+            pos_expectation = self.call(images_and_labels)
+            neg_expectation = self.call([images_and_labels[0], negative_labels])
         loss = tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1)
-        # negative samples
-        negative_samples = []
+        loss += tf.reduce_sum(tf.math.square(0 - neg_expectation), axis=1)
+        if self.params['add_decoder']:
+            reconstruction_loss = tf.reduce_mean(tf.reduce_sum(
+                self.mse(images_and_labels[0], reconstructed_image), axis=(1,2)
+            ))
+            loss += self.params['reconstruction_loss_scaling'] * reconstruction_loss
+        return tf.reduce_mean(loss)
+    
+    def create_negative_labels(self, positive_labels):
+        negative_labels = []
         for i in range(self.params['num_domains']):
             current_labels = tf.repeat(
-                tf.expand_dims(images_and_labels[1][:, i], axis=1),
+                tf.expand_dims(positive_labels[:, i], axis=1),
                 self.all_labels[i].shape[1],
                 axis=1
             )
-            all_domain_labels = tf.repeat(self.all_labels[i], tf.shape(images_and_labels[1])[0], axis=0)
+            all_domain_labels = tf.repeat(self.all_labels[i], tf.shape(positive_labels)[0], axis=0)
             dist = tfd.Categorical(probs=tf.cast(current_labels != all_domain_labels, tf.float32))
-            negative_samples.append(dist.sample())
-        neg_expectation = self.call([images_and_labels[0], tf.stack(negative_samples, axis=1)])
+            negative_labels.append(dist.sample())
+        negative_labels = tf.stack(negative_labels, axis=1)
+        return negative_labels
 
-        loss = loss + tf.reduce_sum(tf.math.square(0 - neg_expectation), axis=1)
-        return tf.reduce_mean(loss)
-    
+
     def get_config(self):
         # returns parameters with which the model was instanciated
         return self.params

@@ -12,7 +12,8 @@ import tensorflow as tf
 from tensorflow import keras
 
 from quantum.model import Qoncepts
-from vae.data_generator import get_tf_dataset  # imports the data generator function
+from quantum.model_hierarchy import Qoncepts_hierarchy
+from vae.data_generator import get_tf_dataset, get_tf_dataset_for_paired_data
 
 # configuring tensorflow
 config = tf.compat.v1.ConfigProto()
@@ -22,10 +23,11 @@ sess = tf.compat.v1.Session(config=config)
 
 IMAGE_DIR='images/basic_train/'   # location of dataset images
 BATCH_SIZE=32
-NUM_EPOCHS=50
+NUM_EPOCHS=200
 
 # prepare dataset
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
+# dataset_tf, image_input_shape = get_tf_dataset_for_paired_data(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
 
 params = {
     'input_shape': [image_input_shape, (4,)], # 4 labels
@@ -37,9 +39,14 @@ params = {
     'num_cnn_layers': 4,    # number of convolutional layers
     'kernel_size': 4,   # the size of the sliding window in CNN
     'num_strides': 2,   # the size of the step for which the sliding window is moved in CNN
+    'dense_dropout': 0.2, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for dense layers
+    'convolutional_dropout': 0.2, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for convolutional layers
+    'add_decoder': True,
+    'reconstruction_loss_scaling': 1,
 }
 
 qoncepts = Qoncepts(params)
+# qoncepts = Qoncepts_hierarchy(params)
 # qoncepts.compile(optimizer=tf.keras.optimizers.Adam(), run_eagerly=True)  # to run step-by-step
 qoncepts.compile(optimizer=tf.keras.optimizers.Adam())
 

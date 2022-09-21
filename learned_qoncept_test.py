@@ -27,16 +27,16 @@ def learned_qoncepts_test(image, model):
         return False
 
 
-IMAGE_DIR = 'images/basic_test'
+IMAGE_DIR = 'images/twake_test'
 QONCEPTS_MODEL='saved_models/qoncepts_April_15_01_13'
-CONCEPT_DOMAINS = [0, 2] # 0 for colour, 2 for shape
+CONCEPT_DOMAINS = [1, 3] # 0 for colour, 2 for shape
 NUM_IMAGES = 300 # number of images to classify
 NUM_CONCEPT_PQC_LAYERS = 2
 MIXED = False
 
-data_it = ImageGenerator(IMAGE_DIR, batch_size=1)
-learned_qoncept_file = 'saved_models/learned_concept_May_05_22_08'
-qoncepts = load_saved_model(QONCEPTS_MODEL, image_dir=IMAGE_DIR)
+data_it = ImageGenerator(IMAGE_DIR, batch_size=1, encode_labels=False)
+learned_qoncept_file = 'saved_models/learned_concept_decoder_twake_September_21_21_29'
+qoncepts = load_saved_model(QONCEPTS_MODEL)
 learned_qoncept = load_learned_concept(
     learned_qoncept_file,
     qoncepts=qoncepts,
@@ -46,19 +46,22 @@ learned_qoncept = load_learned_concept(
 )
 
 def concept_truth(labels):
-    if 'red' in labels and 'square' in labels:
-        classification = True
-    elif 'blue' in labels and 'circle' in labels:
-        classification = True
-    else:
+    # if 'red' in labels or 'square' in labels:
+    #     classification = True
+    # elif 'blue' in labels and 'circle' in labels:
+    #     classification = True
+    #this if for twake concept
+    if 'not' in labels:
         classification = False
+    else:
+        classification = True
     return classification
 
 qoncepts_prediction_labels = []
 truth_labels = []
 for i in range(NUM_IMAGES):
     print("Classifying image " + str(i+1) + " of " + str(NUM_IMAGES), end='\r')
-    truth_labels.append(concept_truth(encode_or_decode(data_it[i][1][0])))
+    truth_labels.append(concept_truth(data_it[i][1][0]))
     qoncepts_prediction_labels.append(learned_qoncepts_test(data_it[i][0][0], learned_qoncept))
 
 print(classification_report(truth_labels, qoncepts_prediction_labels))

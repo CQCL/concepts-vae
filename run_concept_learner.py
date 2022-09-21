@@ -22,28 +22,30 @@ config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
 
 
-IMAGE_DIR='images/basic_train/'   # location of dataset images
+IMAGE_DIR='images/twake_train/'   # location of dataset images
 BATCH_SIZE=32
-NUM_EPOCHS=25
+NUM_EPOCHS=500
 QONCEPTS_MODEL='saved_models/qoncepts_April_15_01_13'
-CONCEPT_DOMAINS = [0, 2] # 0 for colour, 2 for shape
+CONCEPT_DOMAINS = [1, 3] # 0 for colour, 2 for shape
 NUM_CONCEPT_PQC_LAYERS = 2
 MIXED = False
 
 
 def condition(labels):
-    if 'red' in labels and 'square' in labels:
-        classification = 1
-    elif 'blue' in labels and 'circle' in labels:
-        classification = 1
-    else:
+    # if 'red' in labels and 'square' in labels:
+    #     classification = 1
+    # elif 'blue' in labels and 'circle' in labels:
+    #     classification = 1
+    if 'not' in labels:
         classification = 0
+    else:
+        classification = 1
     return classification
 
 data_gen, output_signature, num_images = create_data_generator_with_classification_condition(IMAGE_DIR, condition)
 dataset_tf = get_tf_dataset_from_generator(data_gen, output_signature, num_images, BATCH_SIZE)
 
-qoncepts = load_saved_model(QONCEPTS_MODEL, image_dir=IMAGE_DIR)
+qoncepts = load_saved_model(QONCEPTS_MODEL)
 
 concept_learner = ConceptLearner(qoncepts, CONCEPT_DOMAINS, NUM_CONCEPT_PQC_LAYERS, MIXED)
 
