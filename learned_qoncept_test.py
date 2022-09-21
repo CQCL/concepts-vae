@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 from quantum.utils import load_learned_concept, load_saved_model
 
 from vae.data_generator import ImageGenerator
@@ -65,3 +65,4 @@ for i in range(NUM_IMAGES):
     qoncepts_prediction_labels.append(learned_qoncepts_test(data_it[i][0][0], learned_qoncept))
 
 print(classification_report(truth_labels, qoncepts_prediction_labels))
+print(confusion_matrix(truth_labels, qoncepts_prediction_labels))
