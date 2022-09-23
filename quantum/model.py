@@ -206,9 +206,9 @@ class Qoncepts(keras.Model):
         loss = tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1)
         loss += tf.reduce_sum(tf.math.square(0 - neg_expectation), axis=1)
         if self.params['add_decoder']:
-            reconstruction_loss = tf.reduce_mean(tf.reduce_sum(
-                self.mse(images_and_labels[0], reconstructed_image), axis=(1,2)
-            ))
+            reconstruction_loss = tf.reduce_sum(
+                tf.math.square(images_and_labels[0] - reconstructed_image), axis=(1,2,3)
+            )
             loss += self.params['reconstruction_loss_scaling'] * reconstruction_loss
         return tf.reduce_mean(loss)
     
