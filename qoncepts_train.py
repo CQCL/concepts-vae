@@ -23,7 +23,7 @@ sess = tf.compat.v1.Session(config=config)
 
 IMAGE_DIR='images/basic_train/'   # location of dataset images
 BATCH_SIZE=32
-NUM_EPOCHS=200
+NUM_EPOCHS=100
 
 # prepare dataset
 dataset_tf, image_input_shape = get_tf_dataset(IMAGE_DIR, BATCH_SIZE, return_image_shape=True)
@@ -42,7 +42,7 @@ params = {
     'dense_dropout': 0.2, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for dense layers
     'convolutional_dropout': 0.2, # dropout rate for dense layers; range [0,1]; set to 0 for no dropout for convolutional layers
     'add_decoder': True,
-    'reconstruction_loss_scaling': 1,
+    'reconstruction_loss_scaling': 0.01,
 }
 
 qoncepts = Qoncepts(params)

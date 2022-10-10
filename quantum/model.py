@@ -203,8 +203,8 @@ class Qoncepts(keras.Model):
         else:
             pos_expectation = self.call(images_and_labels)
             neg_expectation = self.call([images_and_labels[0], negative_labels])
-        loss = tf.reduce_sum(tf.math.square(1 - pos_expectation), axis=1)
-        loss += tf.reduce_sum(tf.math.square(0 - neg_expectation), axis=1)
+        loss = tf.reduce_mean(-1 * tf.math.log(pos_expectation))
+        loss += tf.reduce_mean(-1 * tf.math.log(1 - neg_expectation))
         if self.params['add_decoder']:
             reconstruction_loss = tf.reduce_sum(
                 tf.math.square(images_and_labels[0] - reconstructed_image), axis=(1,2,3)
