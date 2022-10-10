@@ -1,6 +1,7 @@
 import cirq
 import json
-
+import tensorflow as tf
+import tensorflow_quantum as tfq
 from functools import reduce
 from vae.data_generator import get_tf_dataset
 
@@ -64,3 +65,11 @@ def create_probability_measurement_operators(qubits):
             create_state_measurement_operator(qubits, state)
         )
     return measurement_operators
+
+def get_unitary_from_pqc(pqc, values):
+    symbols = list(sorted(tfq.util.get_circuit_symbols(pqc)))
+    values = tf.reshape(values, (values.shape[0]*values.shape[1]))
+    symbols_values_dict = {}
+    for i in range(len(symbols)):
+        symbols_values_dict[symbols[i]] = values[i].numpy()
+    return cirq.unitary(cirq.resolve_parameters(cirq.Circuit(pqc), symbols_values_dict))
