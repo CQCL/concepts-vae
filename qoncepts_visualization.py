@@ -1,5 +1,8 @@
-#%%
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+
 import matplotlib as plt
+from matplotlib import animation
 import numpy as np
 import qutip
 from scipy.spatial.transform import Rotation as R
@@ -15,7 +18,11 @@ def rotate(vec, rotation_vector):
     return r.apply(vec)
 
 def rotate_zero_state(rotation_vector=np.array([0, 0, 0])):
-    return rotate(np.array([0, 0, 1]), rotation_vector)
+    state = np.array([0, 0, 1])
+    state = rotate(state, [rotation_vector[0], 0, 0])
+    state = rotate(state, [0, rotation_vector[1], 0])
+    state = rotate(state, [0, 0, rotation_vector[2]])
+    return state
 
 def get_colour_list(n, name='plasma'):
     cmap = plt.cm.get_cmap(name, n)
@@ -28,7 +35,7 @@ def get_colour_list(n, name='plasma'):
 
 if __name__ == '__main__':
     IMAGE_DIR = 'images/basic_train'
-    qoncepts = load_saved_model('saved_models/qoncepts_September_30_00_22', image_dir=IMAGE_DIR)
+    qoncepts = load_saved_model('saved_models/qoncepts_October_10_18_36', image_dir=IMAGE_DIR)
     data_it = ImageGenerator(IMAGE_DIR, batch_size=1, encode_labels=False)
 
     image_vectors = [{conc: [] for conc in enc.enc_dict[d]} for d in enc.concept_domains]
@@ -45,7 +52,8 @@ if __name__ == '__main__':
         b = qutip.Bloch()
         b.point_marker = ['o']
         b.point_size = [5]
-        colour_list = get_colour_list(5)
+        b.view = [0, 20]
+        colour_list = get_colour_list(num_concepts)
         b.point_color = colour_list
         b.vector_color = colour_list
         for j in range(num_concepts):
@@ -55,7 +63,14 @@ if __name__ == '__main__':
                 continue
             b.add_points(points)
             vector = qoncepts.concept_params.concept_params[i][j]
+            vector = -1 * vector
             vec = rotate_zero_state(vector[::-1])
             b.add_vectors(vec)
             b.add_annotation(vec, concept_name)
-        b.save(name='images/bloch/' + domain + '_bloch.png')
+        b.show()
+        def animate(i):
+            b.axes.view_init(azim=i, elev=20)
+            return b.axes
+        ani = animation.FuncAnimation(b.axes.figure, animate, np.linspace(0, 360, 360),
+                                      blit=False, repeat=False)
+        ani.save('images/bloch/' + domain + '_bloch.mp4', fps=60)
