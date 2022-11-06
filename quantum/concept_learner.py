@@ -5,7 +5,7 @@ import tensorflow as tf
 import tensorflow_quantum as tfq
 from tensorflow import keras
 
-from quantum.circuit_creation import entangling_layer, one_qubit_rotation
+from quantum.circuit_creation import entangling_layer, one_qubit_rotation, one_qubit_rotation_rev
 from quantum.utils import create_zeros_measurement_operator
 
 
@@ -50,7 +50,7 @@ class ConceptLearner(keras.Model):
         for layer in range(self.num_concept_pqc_layers):
             for i, qubit in enumerate(all_concept_qubits):
                 offset = (i * self.num_concept_pqc_layers + layer) * 3
-                pqc += one_qubit_rotation(qubit, concept_params[offset:offset+3])
+                pqc += one_qubit_rotation_rev(qubit, concept_params[offset:offset+3])
             pqc += entangling_layer(all_concept_qubits)
         if self.mixed:
             measurement_operator = create_zeros_measurement_operator(mixture_qubits)

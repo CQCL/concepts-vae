@@ -36,13 +36,14 @@ MIXED = False
 
 data_it = ImageGenerator(IMAGE_DIR, batch_size=1, encode_labels=False)
 learned_qoncept_file = 'saved_models/learned_concept_decoder_twake_September_21_21_29'
-qoncepts = load_saved_model(QONCEPTS_MODEL)
+qoncepts = load_saved_model(QONCEPTS_MODEL, image_dir=IMAGE_DIR)
 learned_qoncept = load_learned_concept(
     learned_qoncept_file,
     qoncepts=qoncepts,
     concept_domains=CONCEPT_DOMAINS,
     num_concept_pqc_layers=NUM_CONCEPT_PQC_LAYERS,
-    mixed=MIXED
+    mixed=MIXED,
+    image_dir=IMAGE_DIR,
 )
 
 def concept_truth(labels):
