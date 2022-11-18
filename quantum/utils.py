@@ -82,10 +82,10 @@ def get_concept_positive_operator(learned_qoncept, trace_normalize=True):
     discard_effect = np.identity(2)
     concept_opt = 1
     for qubit in learned_qoncept.concept_pqc.all_qubits():
-        if qubit not in learned_qoncept.qoncepts.qubits:
-            concept_opt = np.kron(concept_opt, zero_effect)
-        else:
+        if learned_qoncept.mixed and qubit in learned_qoncept.qoncepts.qubits:
             concept_opt = np.kron(concept_opt, discard_effect)
+        else:
+            concept_opt = np.kron(concept_opt, zero_effect)
     concept_opt = unitary @ concept_opt @ unitary.H
     if trace_normalize:
         concept_opt = concept_opt / np.trace(concept_opt)
@@ -110,4 +110,6 @@ def partial_trace(rho, discard_qubits):
     return cirq.linalg.partial_trace(rho, discard_qubits)
 
 def partial_trace_domain(rho, learned_qoncept, domain):
-    return partial_trace(rho, get_qubits_idx_per_domain(learned_qoncept, domain))
+    discard_qubits = [get_qubits_idx_per_domain(learned_qoncept, i) for i in domain]
+    discard_qubits = np.array(discard_qubits).flatten()
+    return partial_trace(rho, discard_qubits)
