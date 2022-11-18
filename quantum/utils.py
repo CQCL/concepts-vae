@@ -1,5 +1,6 @@
 import cirq
 import json
+import numpy as np
 import tensorflow as tf
 import tensorflow_quantum as tfq
 from functools import reduce
@@ -73,3 +74,40 @@ def get_unitary_from_pqc(pqc, values):
     for i in range(len(symbols)):
         symbols_values_dict[symbols[i]] = values[i].numpy()
     return cirq.unitary(cirq.resolve_parameters(cirq.Circuit(pqc), symbols_values_dict))
+
+def get_concept_positive_operator(qoncepts, learned_qoncept, trace_normalize=False):
+    unitary = get_unitary_from_pqc(learned_qoncept.concept_pqc, learned_qoncept.concept_params)
+    unitary = np.matrix(unitary)
+    zero_effect = np.array([[1,0], [0,0]])
+    discard_effect = np.identity(2)
+    concept_opt = 1
+    for qubit in learned_qoncept.concept_pqc.all_qubits():
+        if qubit not in qoncepts.qubits:
+            concept_opt = np.kron(concept_opt, zero_effect)
+        else:
+            concept_opt = np.kron(concept_opt, discard_effect)
+    concept_opt = unitary @ concept_opt @ unitary.H
+    if trace_normalize:
+        concept_opt = concept_opt / np.trace(concept_opt)
+    return concept_opt
+
+def get_qubits_idx_per_domain(learned_qoncept, domain):
+    if domain >= len(learned_qoncept.concept_domains):
+        raise IndexError('index {} must be less than the number of domains: {}'\
+            .format(domain, len(learned_qoncept.concept_domains)))
+    qubits_per_domain = learned_qoncept.qoncepts.params['num_qubits_per_domain']
+    offset = domain * qubits_per_domain
+    qubits = list(range(offset, offset + qubits_per_domain))
+    if learned_qoncept.mixed:
+        len_concept_qubits = len(learned_qoncept.concept_pqc.all_qubits())
+        offset = offset + int(len_concept_qubits / 2)
+        qubits.extend(list(range(offset, offset + qubits_per_domain)))
+    return qubits
+
+def partial_trace(rho, discard_qubits):
+    shape = [2] * int(np.log2(rho.shape[0]))
+    rho = np.array(rho).reshape(shape * 2)
+    return cirq.linalg.partial_trace(rho, discard_qubits)
+
+def partial_trace_domain(rho, domain):
+    return partial_trace(rho, get_qubits_idx_per_domain(learned_qoncept, domain))
