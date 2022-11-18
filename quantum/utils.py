@@ -107,7 +107,10 @@ def get_qubits_idx_per_domain(learned_qoncept, domain):
 def partial_trace(rho, discard_qubits):
     shape = [2] * int(np.log2(rho.shape[0]))
     rho = np.array(rho).reshape(shape * 2)
-    return cirq.linalg.partial_trace(rho, discard_qubits)
+    rho = cirq.linalg.partial_trace(rho, discard_qubits)
+    dm_size = int(2 ** (len(rho.shape) / 2))
+    rho = rho.reshape((dm_size, dm_size))
+    return rho
 
 def partial_trace_domain(rho, learned_qoncept, domain):
     discard_qubits = [get_qubits_idx_per_domain(learned_qoncept, i) for i in domain]
