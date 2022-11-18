@@ -40,7 +40,7 @@ class ConceptLearner(keras.Model):
             qubits = self.qoncepts.qubits[offset:offset + qubits_per_domain]
             concept_qubits.extend(qubits)
         if self.mixed:
-            mixture_qubits = [cirq.GridQubit(len(self.qoncepts.qubits) + i, 0)\
+            mixture_qubits = [cirq.GridQubit(len(self.qoncepts.all_qubits) + i, 0)\
                 for i in range(len(concept_qubits))]
         else:
             mixture_qubits = []
