@@ -75,14 +75,14 @@ def get_unitary_from_pqc(pqc, values):
         symbols_values_dict[symbols[i]] = values[i].numpy()
     return cirq.unitary(cirq.resolve_parameters(cirq.Circuit(pqc), symbols_values_dict))
 
-def get_concept_positive_operator(qoncepts, learned_qoncept, trace_normalize=False):
+def get_concept_positive_operator(learned_qoncept, trace_normalize=True):
     unitary = get_unitary_from_pqc(learned_qoncept.concept_pqc, learned_qoncept.concept_params)
     unitary = np.matrix(unitary)
     zero_effect = np.array([[1,0], [0,0]])
     discard_effect = np.identity(2)
     concept_opt = 1
     for qubit in learned_qoncept.concept_pqc.all_qubits():
-        if qubit not in qoncepts.qubits:
+        if qubit not in learned_qoncept.qoncepts.qubits:
             concept_opt = np.kron(concept_opt, zero_effect)
         else:
             concept_opt = np.kron(concept_opt, discard_effect)
@@ -109,5 +109,5 @@ def partial_trace(rho, discard_qubits):
     rho = np.array(rho).reshape(shape * 2)
     return cirq.linalg.partial_trace(rho, discard_qubits)
 
-def partial_trace_domain(rho, domain):
+def partial_trace_domain(rho, learned_qoncept, domain):
     return partial_trace(rho, get_qubits_idx_per_domain(learned_qoncept, domain))
