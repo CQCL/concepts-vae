@@ -45,7 +45,7 @@ def condition(labels):
 data_gen, output_signature, num_images = create_data_generator_with_classification_condition(IMAGE_DIR, condition)
 dataset_tf = get_tf_dataset_from_generator(data_gen, output_signature, num_images, BATCH_SIZE)
 
-qoncepts = load_saved_model(QONCEPTS_MODEL)
+qoncepts = load_saved_model(QONCEPTS_MODEL, image_dir=IMAGE_DIR)
 
 concept_learner = ConceptLearner(qoncepts, CONCEPT_DOMAINS, NUM_CONCEPT_PQC_LAYERS, MIXED)
 
