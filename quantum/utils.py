@@ -84,7 +84,7 @@ def get_concept_positive_operator(learned_qoncept, trace_normalize=True):
     discard_effect = np.identity(2)
     concept_opt = 1
     initialization = 1
-    for qubit in learned_qoncept.concept_pqc.all_qubits():
+    for qubit in sorted(learned_qoncept.concept_pqc.all_qubits()):
         if learned_qoncept.mixed and qubit in learned_qoncept.qoncepts.qubits:
             concept_opt = np.kron(concept_opt, discard_effect)
             initialization = np.kron(initialization, zero_pure)

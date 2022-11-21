@@ -19,10 +19,9 @@ learned_qoncept = load_learned_concept(
     image_dir=IMAGE_DIR,
 )
 
-print('purity: {:.2f}'.format(purity(learned_qoncept)))
-print('von_neumann_entropy: {:.2f}'.format(von_neumann_entropy(learned_qoncept)))
+print('purity: {:.4f}'.format(purity(learned_qoncept)))
+print('von_neumann_entropy: {:.4f}'.format(von_neumann_entropy(learned_qoncept)))
+print('entanglement_entropy: {:.4f}'.format(entanglement_entropy(learned_qoncept)))
 if learned_qoncept.mixed:
-    print('conditional_entropy: {:.2f}'.format(conditional_entropy(learned_qoncept)))
-    print('log_negativity: {:.2f}'.format(log_negativity(learned_qoncept)))
-else:
-    print('entanglement_entropy: {:.2f}'.format(entanglement_entropy(learned_qoncept)))
+    print('conditional_entropy: {:.4f}'.format(conditional_entropy(learned_qoncept)))
+    print('log_negativity: {:.4f}'.format(log_negativity(learned_qoncept)))
