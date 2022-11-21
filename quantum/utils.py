@@ -79,14 +79,21 @@ def get_concept_positive_operator(learned_qoncept, trace_normalize=True):
     unitary = get_unitary_from_pqc(learned_qoncept.concept_pqc, learned_qoncept.concept_params)
     unitary = np.matrix(unitary)
     zero_effect = np.array([[1,0], [0,0]])
+    zero_pure = np.array([1,0])
+    identity = np.identity(2)
     discard_effect = np.identity(2)
     concept_opt = 1
+    initialization = 1
     for qubit in learned_qoncept.concept_pqc.all_qubits():
         if learned_qoncept.mixed and qubit in learned_qoncept.qoncepts.qubits:
             concept_opt = np.kron(concept_opt, discard_effect)
+            initialization = np.kron(initialization, zero_pure)
         else:
             concept_opt = np.kron(concept_opt, zero_effect)
+            initialization = np.kron(initialization, identity)
     concept_opt = unitary @ concept_opt @ unitary.H
+    initialization = np.matrix(initialization)
+    concept_opt = initialization @ concept_opt @ initialization.H
     if trace_normalize:
         concept_opt = concept_opt / np.trace(concept_opt)
     return concept_opt
@@ -98,16 +105,13 @@ def get_qubits_idx_per_domain(learned_qoncept, domain):
     qubits_per_domain = learned_qoncept.qoncepts.params['num_qubits_per_domain']
     offset = domain * qubits_per_domain
     qubits = list(range(offset, offset + qubits_per_domain))
-    if learned_qoncept.mixed:
-        len_concept_qubits = len(learned_qoncept.concept_pqc.all_qubits())
-        offset = offset + int(len_concept_qubits / 2)
-        qubits.extend(list(range(offset, offset + qubits_per_domain)))
     return qubits
 
 def partial_trace(rho, discard_qubits):
     shape = [2] * int(np.log2(rho.shape[0]))
     rho = np.array(rho).reshape(shape * 2)
-    rho = cirq.linalg.partial_trace(rho, discard_qubits)
+    qubits_to_keep = [i for i in range(len(shape)) if i not in discard_qubits]
+    rho = cirq.linalg.partial_trace(rho, qubits_to_keep)
     dm_size = int(2 ** (len(rho.shape) / 2))
     rho = rho.reshape((dm_size, dm_size))
     return rho
